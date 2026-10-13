@@ -15,10 +15,7 @@ func newTestService(t *testing.T) (*Service, *user.FileRepository) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, err := NewService(repo, NewTokenManager([]byte("secreto-de-pruebas"), time.Hour))
-	if err != nil {
-		t.Fatal(err)
-	}
+	svc := NewService(repo, NewTokenManager([]byte("secreto-de-pruebas"), time.Hour))
 	return svc, repo
 }
 
@@ -121,21 +118,5 @@ func TestAuthenticateTokenOfUnknownUser(t *testing.T) {
 	token, _ := svc.tokens.Issue("usuario-que-no-existe")
 	if _, err := svc.Authenticate(token); !errors.Is(err, ErrUnauthenticated) {
 		t.Errorf("err = %v; quería ErrUnauthenticated", err)
-	}
-}
-
-func TestSeedAdmin(t *testing.T) {
-	svc, repo := newTestService(t)
-	in := RegisterInput{Nombre: "Admin", Email: "admin@automarket.com", Telefono: "3001234567", Password: "admin-clave-1"}
-
-	if err := svc.SeedAdmin(in); err != nil {
-		t.Fatal(err)
-	}
-	if err := svc.SeedAdmin(in); err != nil {
-		t.Fatalf("sembrar dos veces no debe fallar: %v", err)
-	}
-	u, err := repo.FindByEmail("admin@automarket.com")
-	if err != nil || u.Rol != user.RoleAdministrador {
-		t.Errorf("admin = %+v, %v; quería rol administrador", u, err)
 	}
 }

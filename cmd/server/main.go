@@ -22,11 +22,7 @@ func main() {
 	}
 
 	tokens := auth.NewTokenManager(authSecret(), tokenTTL)
-	authSvc, err := auth.NewService(users, tokens)
-	if err != nil {
-		log.Fatalf("creando servicio de autenticación: %v", err)
-	}
-	seedAdmin(authSvc)
+	authSvc := auth.NewService(users, tokens)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -51,23 +47,6 @@ func authSecret() []byte {
 		log.Fatalf("generando clave: %v", err)
 	}
 	return secret
-}
-
-// seedAdmin crea el administrador inicial si se definen ADMIN_EMAIL y ADMIN_PASSWORD.
-func seedAdmin(svc *auth.Service) {
-	email, password := os.Getenv("ADMIN_EMAIL"), os.Getenv("ADMIN_PASSWORD")
-	if email == "" || password == "" {
-		return
-	}
-	err := svc.SeedAdmin(auth.RegisterInput{
-		Nombre:   env("ADMIN_NOMBRE", "Administrador"),
-		Email:    email,
-		Telefono: env("ADMIN_TELEFONO", "0000000"),
-		Password: password,
-	})
-	if err != nil {
-		log.Fatalf("creando administrador inicial: %v", err)
-	}
 }
 
 func env(key, fallback string) string {

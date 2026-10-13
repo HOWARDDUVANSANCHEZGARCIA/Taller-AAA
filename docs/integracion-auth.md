@@ -7,14 +7,12 @@ Cubre HU-VEN-01 (registro autónomo) y la parte *Authentication* de RF-01.
 ```bash
 go mod tidy                      # primera vez: descarga Gin y genera go.sum
 go test ./...
-AUTH_SECRET=cambia-esto ADMIN_EMAIL=admin@automarket.com ADMIN_PASSWORD=admin-clave-1 \
-  go run ./cmd/server
+AUTH_SECRET=cambia-esto go run ./cmd/server
 ```
 
 | Variable | Obligatoria | Por defecto | Uso |
 |---|---|---|---|
 | `AUTH_SECRET` | recomendada | aleatoria al arrancar | Clave HMAC de los tokens. Sin ella, los tokens no sobreviven a un reinicio. |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | no | — | Crea el administrador inicial si no existe. Es la única forma de tener un administrador. |
 | `DATA_FILE` | no | `data/users.json` | Archivo de usuarios. |
 | `PORT` | no | `8080` | Puerto HTTP. |
 
@@ -56,13 +54,12 @@ protected.POST("/vehiculos", func(c *gin.Context) {
 ## Qué necesita cada integrante
 
 - **Integrante 2 (vehículos):** use `u.ID` como `vendedorID` de la publicación. Para el contacto del vendedor en el catálogo público use `user.Repository.FindByID` y exponga `Nombre`, `Email` y `Telefono` (nunca `PasswordHash`).
-- **Integrante 3 (autorización):** escriba `RequireRole(roles ...user.Role)` sobre `CurrentUser(c)` (403 si el rol no está permitido). Para eliminar usuarios, agregue `Delete(id string) error` a `user.Repository` y a `FileRepository` (mismo patrón que `Create`: bloquear, modificar, `persist`).
+- **Integrante 3 (autorización):** escriba `RequireRole(roles ...user.Role)` sobre `CurrentUser(c)` (403 si el rol no está permitido). Para eliminar usuarios, agregue `Delete(id string) error` a `user.Repository` y a `FileRepository` (mismo patrón que `Create`: bloquear, modificar, `persist`). El registro solo crea vendedores, así que el administrador no sale de esta API: para sus pruebas, créelo directo con `repo.Create(user.User{..., Rol: user.RoleAdministrador})` y obtenga su token con `auth.TokenManager.Issue(id)`. Cómo existirá el administrador al ejecutar el servidor lo debe acordar el grupo.
 - **Integrante 4 (accounting):** registre `register` y `login` como operaciones con resultado (éxito, 400, 401, 409). El actor de `register` y `login` fallido es anónimo; en rutas protegidas sale de `CurrentUser(c)`. Un middleware global que envuelva `c.Next()` ve el usuario si `Authenticate` ya corrió.
 
 ## Decisiones de diseño
 
 - Contraseñas: PBKDF2-HMAC-SHA256 (`crypto/pbkdf2`), 210 000 iteraciones, sal aleatoria de 16 bytes, comparación en tiempo constante.
 - Tokens: `base64url(claims).base64url(HMAC-SHA256)`, vigencia 1 hora.
-- El login responde igual si el correo no existe o la clave es incorrecta, y gasta el mismo tiempo de cómputo en ambos casos.
+- El login responde igual si el correo no existe o la clave es incorrecta (`401 credenciales inválidas`).
 - Persistencia: JSON con mutex y escritura atómica (archivo temporal + `rename`).
-- El administrador inicial por variables de entorno no está en las HU; se agregó porque sin él no puede existir un administrador autenticado. Si el equipo prefiere otra forma, se quita `seedAdmin` y `Service.SeedAdmin`.

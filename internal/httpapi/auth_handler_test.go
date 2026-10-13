@@ -25,10 +25,7 @@ func newTestRouter(t *testing.T) (*gin.Engine, *auth.Service) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, err := auth.NewService(repo, auth.NewTokenManager([]byte("secreto-de-pruebas"), time.Hour))
-	if err != nil {
-		t.Fatal(err)
-	}
+	svc := auth.NewService(repo, auth.NewTokenManager([]byte("secreto-de-pruebas"), time.Hour))
 
 	r := gin.New()
 	RegisterAuthRoutes(r, svc)
