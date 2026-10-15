@@ -3,6 +3,7 @@ package httpapi
 import (
 	"github.com/gin-gonic/gin"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/vehicle"
 )
@@ -11,6 +12,7 @@ import (
 type Services struct {
 	Auth     *auth.Service
 	Vehicles *vehicle.Service
+	Admin    *admin.Service
 }
 
 // NewRouter arma todas las rutas de la aplicación. Lo usan main y las
@@ -25,6 +27,7 @@ func NewRouter(s Services) *gin.Engine {
 
 	RegisterAuthRoutes(r, s.Auth)
 	RegisterVehicleRoutes(r, s.Vehicles, s.Auth)
+	RegisterAdminRoutes(r, s.Admin, s.Auth)
 	RegisterWebRoutes(r, s)
 	return r
 }

@@ -49,7 +49,7 @@ func loadWebPages() webPages {
 		"tel":    telURL,
 	}
 	pages := webPages{}
-	for _, name := range []string{"catalogo", "vehiculo", "ingresar", "registro", "publicar", "mis-vehiculos", "error"} {
+	for _, name := range []string{"catalogo", "vehiculo", "ingresar", "registro", "publicar", "mis-vehiculos", "panel", "error"} {
 		pages[name] = template.Must(template.New(name).Funcs(funcs).
 			ParseFS(webFS, "web/templates/layout.html", "web/templates/"+name+".html"))
 	}

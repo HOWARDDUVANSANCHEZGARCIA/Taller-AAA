@@ -1,6 +1,7 @@
 package user
 
 import (
+	"slices"
 	"strings"
 	"sync"
 
@@ -65,6 +66,29 @@ func (r *FileRepository) FindByID(id string) (User, error) {
 		}
 	}
 	return User{}, ErrNotFound
+}
+
+func (r *FileRepository) List() ([]User, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return slices.Clone(r.users), nil
+}
+
+func (r *FileRepository) Delete(id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	i := slices.IndexFunc(r.users, func(u User) bool { return u.ID == id })
+	if i < 0 {
+		return ErrNotFound
+	}
+	previous := r.users
+	r.users = slices.Delete(slices.Clone(r.users), i, i+1)
+	if err := r.persist(); err != nil {
+		r.users = previous
+		return err
+	}
+	return nil
 }
 
 func (r *FileRepository) persist() error {

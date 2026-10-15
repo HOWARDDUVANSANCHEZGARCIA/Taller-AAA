@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/apperr"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
@@ -18,13 +19,15 @@ import (
 type WebHandler struct {
 	auth     *auth.Service
 	vehicles *vehicle.Service
+	admin    *admin.Service
 	pages    webPages
 }
 
 // RegisterWebRoutes expone las páginas del sitio. El catálogo, ingresar y
-// registrarse son públicos; publicar y "mis vehículos" exigen rol vendedor.
+// registrarse son públicos; publicar y "mis vehículos" exigen rol vendedor, y
+// el panel exige rol administrador. El panel usa /panel porque /admin es de la API.
 func RegisterWebRoutes(r gin.IRouter, s Services) {
-	h := &WebHandler{auth: s.Auth, vehicles: s.Vehicles, pages: loadWebPages()}
+	h := &WebHandler{auth: s.Auth, vehicles: s.Vehicles, admin: s.Admin, pages: loadWebPages()}
 
 	r.StaticFileFS("/static/estilos.css", "web/static/estilos.css", http.FS(webFS))
 
@@ -42,6 +45,12 @@ func RegisterWebRoutes(r gin.IRouter, s Services) {
 	seller.POST("/publicar", h.publish)
 	seller.GET("/mis-vehiculos", h.mine)
 	seller.POST("/mis-vehiculos/:id/vendido", h.reportSale)
+
+	panel := web.Group("/panel", h.pages.requireRole(user.RoleAdministrador))
+	panel.GET("", h.adminPanel)
+	panel.POST("/vehiculos/:id/aprobar", h.adminApprove)
+	panel.POST("/vehiculos/:id/eliminar", h.adminDeletePublication)
+	panel.POST("/usuarios/:id/eliminar", h.adminDeleteUser)
 }
 
 // notices son los avisos que se muestran después de redirigir (?aviso=...).
@@ -49,6 +58,9 @@ var notices = map[string]string{
 	"registrado": "Tu cuenta quedó creada. Ingresa con tu correo y contraseña.",
 	"publicado":  "Publicación enviada. Aparecerá en el catálogo cuando un administrador la apruebe.",
 	"vendido":    "Venta reportada. El vehículo salió del catálogo.",
+	"aprobada":   "Publicación aprobada. Ya aparece en el catálogo.",
+	"eliminada":  "Publicación eliminada.",
+	"eliminado":  "Usuario eliminado junto con sus publicaciones.",
 }
 
 func (h *WebHandler) catalog(c *gin.Context) {
@@ -160,6 +172,56 @@ func (h *WebHandler) reportSale(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusSeeOther, "/mis-vehiculos?aviso=vendido")
+}
+
+// adminPanelData es lo que muestra el panel del administrador.
+type adminPanelData struct {
+	Publications []admin.Publication
+	Users        []user.User
+	SelfID       string
+}
+
+func (h *WebHandler) adminPanel(c *gin.Context) {
+	pubs, err := h.admin.Publications()
+	if err != nil {
+		h.pages.renderError(c, err)
+		return
+	}
+	users, err := h.admin.Users()
+	if err != nil {
+		h.pages.renderError(c, err)
+		return
+	}
+	current, _ := CurrentUser(c)
+	h.pages.render(c, http.StatusOK, "panel", page{
+		Notice: notices[c.Query("aviso")],
+		Data:   adminPanelData{Publications: pubs, Users: users, SelfID: current.ID},
+	})
+}
+
+func (h *WebHandler) adminApprove(c *gin.Context) {
+	if _, err := h.admin.Approve(c.Param("id")); err != nil {
+		h.pages.renderError(c, err)
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/panel?aviso=aprobada")
+}
+
+func (h *WebHandler) adminDeletePublication(c *gin.Context) {
+	if err := h.admin.DeletePublication(c.Param("id")); err != nil {
+		h.pages.renderError(c, err)
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/panel?aviso=eliminada")
+}
+
+func (h *WebHandler) adminDeleteUser(c *gin.Context) {
+	current, _ := CurrentUser(c)
+	if err := h.admin.DeleteUser(current.ID, c.Param("id")); err != nil {
+		h.pages.renderError(c, err)
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/panel?aviso=eliminado")
 }
 
 // toInput convierte los textos del formulario en números. Acepta puntos y

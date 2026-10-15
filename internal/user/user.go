@@ -51,4 +51,8 @@ type Repository interface {
 	FindByEmail(email string) (User, error)
 	// FindByID devuelve ErrNotFound si no existe.
 	FindByID(id string) (User, error)
+	// List devuelve todos los usuarios en orden de registro.
+	List() ([]User, error)
+	// Delete elimina el usuario. Devuelve ErrNotFound si no existe.
+	Delete(id string) error
 }

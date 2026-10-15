@@ -331,3 +331,32 @@ a:hover { text-decoration-thickness: 2px; }
 @media (max-width: 480px) {
   .pareja { grid-template-columns: 1fr; }
 }
+
+/* ---------- Panel de administración ---------- */
+
+.bloque { margin-bottom: 3rem; }
+.bloque > h2 { margin-bottom: 1rem; }
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+.acciones form { margin: 0; }
+
+/* Eliminar pide un segundo clic sin necesidad de JavaScript. */
+.confirmar summary { list-style: none; }
+.confirmar summary::-webkit-details-marker { display: none; }
+.confirmar[open] summary { background: var(--asfalto); color: #fff; }
+.confirmar form { margin-top: .5rem; }
+
+.boton-peligro { background: var(--error); border-color: var(--error); }
+.boton-peligro:hover { background: #7d2019; border-color: #7d2019; }
+
+.nota { color: var(--grafito); font-size: .9rem; }
+
+@media (max-width: 720px) {
+  .acciones { justify-content: flex-start; }
+}

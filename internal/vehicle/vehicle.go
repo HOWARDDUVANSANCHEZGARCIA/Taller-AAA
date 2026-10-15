@@ -12,6 +12,7 @@ import (
 //
 //	pendiente ──(administrador aprueba)──> publicada
 //	pendiente | publicada ──(vendedor reporta la venta)──> vendida
+//	cualquier estado ──(administrador elimina)──> (se borra)
 //
 // Solo las publicaciones en estado publicada aparecen en el catálogo.
 type Status string
@@ -39,6 +40,7 @@ var (
 	ErrNotFound    = errors.New("vehículo no encontrado")
 	ErrNotOwner    = errors.New("el vehículo pertenece a otro vendedor")
 	ErrAlreadySold = errors.New("el vehículo ya fue reportado como vendido")
+	ErrNotPending  = errors.New("solo se pueden aprobar publicaciones pendientes")
 )
 
 // Repository es el contrato de persistencia de vehículos.
@@ -54,4 +56,8 @@ type Repository interface {
 	// cambio ocurren juntos, sin que otra solicitud se cuele en medio.
 	// Devuelve ErrNotFound si no existe.
 	Update(id string, change func(*Vehicle) error) (Vehicle, error)
+	// Delete elimina la publicación. Devuelve ErrNotFound si no existe.
+	Delete(id string) error
+	// DeleteBySeller elimina todas las publicaciones de un vendedor.
+	DeleteBySeller(sellerID string) error
 }

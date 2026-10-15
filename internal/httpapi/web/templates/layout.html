@@ -18,6 +18,8 @@
         {{if eq .User.Rol "vendedor"}}
           <a href="/publicar">Publicar vehículo</a>
           <a href="/mis-vehiculos">Mis vehículos</a>
+        {{else if eq .User.Rol "administrador"}}
+          <a href="/panel">Panel de administración</a>
         {{end}}
         <form class="salir" method="post" action="/salir">
           <span class="quien">{{.User.Nombre}}</span>

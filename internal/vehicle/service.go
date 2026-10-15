@@ -100,6 +100,34 @@ func (s *Service) ReportSale(sellerID, vehicleID string) (Vehicle, error) {
 	})
 }
 
+// Approve publica una publicación pendiente (HU-ADM-01): pasa a publicada y
+// desde ese momento aparece en el catálogo.
+func (s *Service) Approve(vehicleID string) (Vehicle, error) {
+	return s.repo.Update(vehicleID, func(v *Vehicle) error {
+		if v.Estado != StatusPendiente {
+			return ErrNotPending
+		}
+		v.Estado = StatusPublicada
+		return nil
+	})
+}
+
+// Delete elimina una publicación en cualquier estado (lo usa el administrador).
+func (s *Service) Delete(vehicleID string) error {
+	return s.repo.Delete(vehicleID)
+}
+
+// DeleteBySeller elimina todas las publicaciones de un vendedor.
+func (s *Service) DeleteBySeller(sellerID string) error {
+	return s.repo.DeleteBySeller(sellerID)
+}
+
+// All devuelve todas las publicaciones en cualquier estado, de la más
+// reciente a la más antigua (para el administrador).
+func (s *Service) All() ([]Vehicle, error) {
+	return s.repo.List()
+}
+
 // BySeller devuelve las publicaciones del vendedor en cualquier estado, para
 // que pueda ver si siguen pendientes y reportar sus ventas.
 func (s *Service) BySeller(sellerID string) ([]Vehicle, error) {

@@ -78,3 +78,26 @@ func TestHasRole(t *testing.T) {
 		t.Error("el vendedor no debe tener otros roles")
 	}
 }
+
+func TestFileRepositoryListAndDelete(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "users.json")
+	repo, _ := NewFileRepository(path)
+	_ = repo.Create(User{ID: "1", Email: "a@x.com"})
+	_ = repo.Create(User{ID: "2", Email: "b@x.com"})
+
+	if err := repo.Delete("1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.Delete("1"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("borrar dos veces: err = %v; quería ErrNotFound", err)
+	}
+
+	reloaded, _ := NewFileRepository(path)
+	list, _ := reloaded.List()
+	if len(list) != 1 || list[0].ID != "2" {
+		t.Errorf("tras borrar y recargar = %+v", list)
+	}
+	if _, err := reloaded.FindByEmail("a@x.com"); !errors.Is(err, ErrNotFound) {
+		t.Error("el correo del usuario borrado no debe existir")
+	}
+}

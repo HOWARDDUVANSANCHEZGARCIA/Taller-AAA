@@ -79,6 +79,38 @@ func (r *FileRepository) Update(id string, change func(*Vehicle) error) (Vehicle
 	return updated, nil
 }
 
+func (r *FileRepository) Delete(id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	i := r.index(id)
+	if i < 0 {
+		return ErrNotFound
+	}
+	return r.replace(slices.Delete(slices.Clone(r.vehicles), i, i+1))
+}
+
+func (r *FileRepository) DeleteBySeller(sellerID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	kept := slices.DeleteFunc(slices.Clone(r.vehicles), func(v Vehicle) bool { return v.VendedorID == sellerID })
+	if len(kept) == len(r.vehicles) {
+		return nil
+	}
+	return r.replace(kept)
+}
+
+// replace guarda la lista nueva y solo la adopta si se pudo escribir.
+// Requiere tener el bloqueo.
+func (r *FileRepository) replace(vehicles []Vehicle) error {
+	if err := jsonfile.Save(r.path, vehicles); err != nil {
+		return err
+	}
+	r.vehicles = vehicles
+	return nil
+}
+
 // index devuelve la posición del vehículo o -1. Requiere tener el bloqueo.
 func (r *FileRepository) index(id string) int {
 	return slices.IndexFunc(r.vehicles, func(v Vehicle) bool { return v.ID == id })

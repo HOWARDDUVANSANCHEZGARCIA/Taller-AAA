@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/apperr"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
@@ -30,9 +31,10 @@ func errorStatus(err error) (int, string) {
 		return http.StatusUnauthorized, err.Error()
 	case errors.Is(err, errForbidden), errors.Is(err, vehicle.ErrNotOwner):
 		return http.StatusForbidden, err.Error()
-	case errors.Is(err, vehicle.ErrNotFound):
+	case errors.Is(err, vehicle.ErrNotFound), errors.Is(err, user.ErrNotFound):
 		return http.StatusNotFound, err.Error()
-	case errors.Is(err, user.ErrEmailTaken), errors.Is(err, vehicle.ErrAlreadySold):
+	case errors.Is(err, user.ErrEmailTaken), errors.Is(err, vehicle.ErrAlreadySold),
+		errors.Is(err, vehicle.ErrNotPending), errors.Is(err, admin.ErrSelfDelete):
 		return http.StatusConflict, err.Error()
 	default:
 		log.Printf("error interno: %v", err)

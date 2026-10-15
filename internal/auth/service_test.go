@@ -120,3 +120,35 @@ func TestAuthenticateTokenOfUnknownUser(t *testing.T) {
 		t.Errorf("err = %v; quería ErrUnauthenticated", err)
 	}
 }
+
+func TestEnsureAdmin(t *testing.T) {
+	svc, repo := newTestService(t)
+
+	if err := svc.EnsureAdmin("Admin", "Admin@AutoMarket.com", "clave-admin-123"); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.EnsureAdmin("Admin", "admin@automarket.com", "otra-clave-999"); err != nil {
+		t.Errorf("la segunda vez no debe fallar: %v", err)
+	}
+	u, err := repo.FindByEmail("admin@automarket.com")
+	if err != nil || u.Rol != user.RoleAdministrador {
+		t.Fatalf("admin = %+v, %v", u, err)
+	}
+	if _, err := svc.Login("admin@automarket.com", "clave-admin-123"); err != nil {
+		t.Error("la segunda llamada no debe cambiar la contraseña original")
+	}
+	if list, _ := repo.List(); len(list) != 1 {
+		t.Errorf("debe existir un solo administrador; hay %d usuarios", len(list))
+	}
+
+	if _, err := svc.Register(validInput()); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.EnsureAdmin("X", "ana@correo.com", "clave-admin-123"); err == nil {
+		t.Error("no debe convertir a un vendedor existente en administrador")
+	}
+	var verr *ValidationError
+	if err := svc.EnsureAdmin("X", "nuevo@correo.com", "corta"); !errors.As(err, &verr) {
+		t.Errorf("clave corta: err = %v; quería ValidationError", err)
+	}
+}

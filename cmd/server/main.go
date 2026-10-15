@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/httpapi"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
@@ -24,10 +25,14 @@ func main() {
 		log.Fatalf("abriendo vehículos: %v", err)
 	}
 
-	tokens := auth.NewTokenManager(authSecret(), tokenTTL)
+	authSvc := auth.NewService(users, auth.NewTokenManager(authSecret(), tokenTTL))
+	ensureAdmin(authSvc)
+	vehicleSvc := vehicle.NewService(vehicles, users)
+
 	r := httpapi.NewRouter(httpapi.Services{
-		Auth:     auth.NewService(users, tokens),
-		Vehicles: vehicle.NewService(vehicles, users),
+		Auth:     authSvc,
+		Vehicles: vehicleSvc,
+		Admin:    admin.NewService(users, vehicleSvc),
 	})
 
 	addr := ":" + env("PORT", "8080")
@@ -47,6 +52,20 @@ func authSecret() []byte {
 		log.Fatalf("generando clave: %v", err)
 	}
 	return secret
+}
+
+// ensureAdmin crea el administrador con ADMIN_EMAIL y ADMIN_PASSWORD (y
+// ADMIN_NOMBRE opcional) si todavía no existe. Sin esas variables el sistema
+// funciona, pero nadie puede aprobar publicaciones.
+func ensureAdmin(svc *auth.Service) {
+	email, password := os.Getenv("ADMIN_EMAIL"), os.Getenv("ADMIN_PASSWORD")
+	if email == "" || password == "" {
+		log.Println("ADMIN_EMAIL o ADMIN_PASSWORD no definidos: no se crea administrador")
+		return
+	}
+	if err := svc.EnsureAdmin(env("ADMIN_NOMBRE", "Administrador"), email, password); err != nil {
+		log.Fatalf("creando administrador: %v", err)
+	}
 }
 
 func env(key, fallback string) string {

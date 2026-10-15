@@ -4,6 +4,7 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"net/mail"
 	"strings"
 	"time"
@@ -62,10 +63,32 @@ func NewService(users user.Repository, tokens *TokenManager) *Service {
 
 // Register registra un vendedor. El rol siempre lo fija el servidor.
 func (s *Service) Register(in RegisterInput) (user.User, error) {
+	return s.create(in, user.RoleVendedor)
+}
+
+// EnsureAdmin crea el administrador si todavía no existe. El registro público
+// solo crea vendedores, así que esta es la única forma de tener un
+// administrador: la llama main al arrancar con datos de variables de entorno.
+// El teléfono no es obligatorio porque el administrador no se contacta en el catálogo.
+func (s *Service) EnsureAdmin(nombre, email, password string) error {
+	existing, err := s.users.FindByEmail(strings.TrimSpace(email))
+	switch {
+	case err == nil && existing.Rol == user.RoleAdministrador:
+		return nil
+	case err == nil:
+		return fmt.Errorf("el correo %s ya pertenece a una cuenta que no es de administrador", existing.Email)
+	case !errors.Is(err, user.ErrNotFound):
+		return err
+	}
+	_, err = s.create(RegisterInput{Nombre: nombre, Email: email, Password: password}, user.RoleAdministrador)
+	return err
+}
+
+func (s *Service) create(in RegisterInput, rol user.Role) (user.User, error) {
 	in.Nombre = strings.TrimSpace(in.Nombre)
 	in.Email = strings.TrimSpace(in.Email)
 	in.Telefono = strings.TrimSpace(in.Telefono)
-	if err := validate(in); err != nil {
+	if err := validate(in, rol); err != nil {
 		return user.User{}, err
 	}
 
@@ -83,7 +106,7 @@ func (s *Service) Register(in RegisterInput) (user.User, error) {
 		Email:        strings.ToLower(in.Email),
 		Telefono:     in.Telefono,
 		PasswordHash: hash,
-		Rol:          user.RoleVendedor,
+		Rol:          rol,
 		CreadoEn:     time.Now().UTC(),
 	}
 	if err := s.users.Create(u); err != nil {
@@ -128,14 +151,15 @@ func (s *Service) Authenticate(token string) (user.User, error) {
 	return u, nil
 }
 
-func validate(in RegisterInput) error {
+func validate(in RegisterInput, rol user.Role) error {
 	if in.Nombre == "" || len(in.Nombre) > maxNameLen {
 		return &ValidationError{Msg: "el nombre es obligatorio y debe tener máximo 100 caracteres"}
 	}
 	if addr, err := mail.ParseAddress(in.Email); err != nil || addr.Address != in.Email {
 		return &ValidationError{Msg: "el correo no es válido"}
 	}
-	if !validPhone(in.Telefono) {
+	// El teléfono es el contacto público del vendedor en el catálogo.
+	if rol == user.RoleVendedor && !validPhone(in.Telefono) {
 		return &ValidationError{Msg: "el teléfono debe tener entre 7 y 15 dígitos"}
 	}
 	if n := len(in.Password); n < minPasswordLen || n > maxPasswordLen {

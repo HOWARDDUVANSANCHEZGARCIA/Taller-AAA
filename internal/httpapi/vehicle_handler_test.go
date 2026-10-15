@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/vehicle"
@@ -37,8 +38,13 @@ func newTestApp(t *testing.T) *testApp {
 	}
 	tokens := auth.NewTokenManager([]byte("secreto-de-pruebas"), time.Hour)
 	authSvc := auth.NewService(users, tokens)
+	vehicleSvc := vehicle.NewService(vehicles, users)
 	return &testApp{
-		router:   NewRouter(Services{Auth: authSvc, Vehicles: vehicle.NewService(vehicles, users)}),
+		router: NewRouter(Services{
+			Auth:     authSvc,
+			Vehicles: vehicleSvc,
+			Admin:    admin.NewService(users, vehicleSvc),
+		}),
 		users:    users,
 		vehicles: vehicles,
 		tokens:   tokens,

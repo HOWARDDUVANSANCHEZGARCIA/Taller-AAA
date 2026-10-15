@@ -205,3 +205,47 @@ func TestBySellerReturnsOnlyOwnVehicles(t *testing.T) {
 		t.Errorf("BySeller = %+v; quería las dos de Ana, la más reciente primero", own)
 	}
 }
+
+func TestApprove(t *testing.T) {
+	f := newFixture(t)
+	v, _ := f.svc.Publish(f.seller.ID, validPublish())
+
+	approved, err := f.svc.Approve(v.ID)
+	if err != nil || approved.Estado != StatusPublicada {
+		t.Fatalf("Approve = %+v, %v", approved, err)
+	}
+	if list, _ := f.svc.Catalog(); len(list) != 1 {
+		t.Error("la aprobada debe aparecer en el catálogo")
+	}
+	if _, err := f.svc.Approve(v.ID); !errors.Is(err, ErrNotPending) {
+		t.Errorf("aprobar dos veces: err = %v; quería ErrNotPending", err)
+	}
+	_, _ = f.svc.ReportSale(f.seller.ID, v.ID)
+	if _, err := f.svc.Approve(v.ID); !errors.Is(err, ErrNotPending) {
+		t.Errorf("aprobar vendida: err = %v; quería ErrNotPending", err)
+	}
+	if _, err := f.svc.Approve("no-existe"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("inexistente: err = %v", err)
+	}
+}
+
+func TestDeleteAndDeleteBySeller(t *testing.T) {
+	f := newFixture(t)
+	a1, _ := f.svc.Publish(f.seller.ID, validPublish())
+	f.svc.Publish(f.seller.ID, validPublish())
+	b1, _ := f.svc.Publish(f.other.ID, validPublish())
+
+	if err := f.svc.Delete(a1.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.svc.Delete(a1.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("borrar dos veces: err = %v", err)
+	}
+	if err := f.svc.DeleteBySeller(f.seller.ID); err != nil {
+		t.Fatal(err)
+	}
+	all, _ := f.svc.All()
+	if len(all) != 1 || all[0].ID != b1.ID {
+		t.Errorf("quedan %+v; quería solo la de Beto", all)
+	}
+}

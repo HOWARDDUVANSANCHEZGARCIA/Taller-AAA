@@ -230,3 +230,47 @@ func TestThousandsFormat(t *testing.T) {
 		t.Errorf("telURL = %q", got)
 	}
 }
+
+func TestWebAdminPanel(t *testing.T) {
+	app := newTestApp(t)
+	ana := app.webSession(t, "ana", user.RoleVendedor)
+	admin := app.webSession(t, "admin", user.RoleAdministrador)
+	postForm(app, "/publicar", url.Values{
+		"marca": {"Renault"}, "modelo": {"Koleos"}, "anio": {"2019"}, "precio": {"78000000"}, "kilometraje": {"60000"},
+	}, ana)
+	all, _ := app.vehicles.List()
+	id := all[0].ID
+
+	if w := getPage(app, "/panel", nil); w.Code != http.StatusSeeOther {
+		t.Errorf("visitante: status %d; quería redirección", w.Code)
+	}
+	for _, path := range []string{"/panel/vehiculos/" + id + "/aprobar", "/panel/vehiculos/" + id + "/eliminar", "/panel/usuarios/ana/eliminar"} {
+		if w := postForm(app, path, nil, ana); w.Code != http.StatusForbidden {
+			t.Errorf("vendedor en %s: status %d; quería 403", path, w.Code)
+		}
+	}
+
+	w := getPage(app, "/panel", admin)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Renault Koleos") || !strings.Contains(w.Body.String(), "Pendiente de aprobación") {
+		t.Fatalf("panel: status %d", w.Code)
+	}
+	if w := postForm(app, "/panel/vehiculos/"+id+"/aprobar", nil, admin); w.Code != http.StatusSeeOther {
+		t.Fatalf("aprobar: status %d", w.Code)
+	}
+	if !strings.Contains(getPage(app, "/", nil).Body.String(), "Renault Koleos") {
+		t.Error("la aprobada debe aparecer en el catálogo")
+	}
+
+	if w := postForm(app, "/panel/usuarios/admin/eliminar", nil, admin); w.Code != http.StatusConflict {
+		t.Errorf("auto-eliminación: status %d; quería 409", w.Code)
+	}
+	if w := postForm(app, "/panel/usuarios/ana/eliminar", nil, admin); w.Code != http.StatusSeeOther {
+		t.Fatalf("eliminar usuario: status %d", w.Code)
+	}
+	if strings.Contains(getPage(app, "/", nil).Body.String(), "Renault Koleos") {
+		t.Error("las publicaciones del usuario eliminado no deben verse")
+	}
+	if w := getPage(app, "/mis-vehiculos", ana); w.Code != http.StatusSeeOther {
+		t.Errorf("la sesión del usuario eliminado no debe servir: status %d", w.Code)
+	}
+}
