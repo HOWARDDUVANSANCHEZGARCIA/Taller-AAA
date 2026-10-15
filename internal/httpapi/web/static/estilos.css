@@ -1,0 +1,333 @@
+/* AutoMarket: la placa amarilla colombiana es el único elemento llamativo
+   (logo y precios). Todo lo demás es sobrio: gris asfalto sobre papel claro.
+   Solo fuentes del sistema: no se descarga nada externo. */
+
+:root {
+  --papel: #edeff1;
+  --superficie: #ffffff;
+  --asfalto: #24282c;
+  --grafito: #565d64;
+  --linea: #c5cbd1;
+  --placa: #f7cb15;
+  --placa-tinta: #1b1c1e;
+  --foco: #1f5fbf;
+  --ok: #2d6a43;
+  --ok-fondo: #dcefe2;
+  --espera: #6b5000;
+  --espera-fondo: #fff1c2;
+  --error: #a12c22;
+  --error-fondo: #fbe4e1;
+
+  --letra-titulo: "Bahnschrift", "DIN Alternate", "DIN Condensed", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --letra-texto: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --borde: 4px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--asfalto);
+  font-family: var(--letra-texto);
+  font-size: 1rem;
+  line-height: 1.55;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2 {
+  font-family: var(--letra-titulo);
+  font-stretch: condensed;
+  line-height: 1.1;
+  margin: 0 0 .5rem;
+}
+h1 { font-size: clamp(2rem, 1.4rem + 2.4vw, 3rem); font-weight: 700; }
+h2 { font-size: 1.5rem; font-weight: 700; }
+p { margin: 0 0 1rem; max-width: 65ch; }
+
+a { color: var(--asfalto); text-underline-offset: .2em; }
+a:hover { text-decoration-thickness: 2px; }
+
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Placa ---------- */
+
+.placa {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--placa);
+  color: var(--placa-tinta);
+  border: 3px solid var(--placa-tinta);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 2px var(--placa);
+  font-family: var(--letra-titulo);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.placa-logo {
+  padding: .35rem .8rem .25rem;
+  outline-offset: 3px;
+}
+.placa-texto { font-size: 1.35rem; letter-spacing: .12em; }
+.placa-ciudad { font-size: .6rem; letter-spacing: .3em; margin-top: .2rem; }
+
+.placa-precio {
+  font-size: 1.3rem;
+  padding: .45rem .75rem;
+  margin: 0 0 1rem;
+}
+.placa-grande { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.3rem); padding: .6rem 1rem; }
+
+/* ---------- Barra superior ---------- */
+
+.barra {
+  background: var(--asfalto);
+  color: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+}
+
+.menu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem 1.5rem;
+}
+.menu a, .menu .enlace { color: #fff; }
+.menu .menu-destacado {
+  border: 2px solid var(--placa);
+  color: var(--placa);
+  border-radius: var(--borde);
+  padding: .35rem .8rem;
+  text-decoration: none;
+  font-weight: 600;
+}
+.menu .menu-destacado:hover { background: var(--placa); color: var(--placa-tinta); }
+
+.salir { display: flex; align-items: center; gap: .75rem; margin: 0; }
+.quien { color: #c9ced3; }
+
+/* ---------- Estructura ---------- */
+
+.contenido {
+  flex: 1;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem);
+}
+
+.pie {
+  border-top: 1px solid var(--linea);
+  color: var(--grafito);
+  font-size: .9rem;
+  padding: 1.5rem clamp(1rem, 4vw, 3rem);
+}
+.pie p { margin: 0 auto; max-width: 72rem; }
+
+.encabezado { margin-bottom: 2rem; }
+.encabezado p { color: var(--grafito); font-size: 1.1rem; }
+.encabezado-accion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  justify-content: space-between;
+}
+.encabezado-accion p { margin: 0; }
+
+.migas { margin-bottom: 1.5rem; }
+
+/* ---------- Catálogo ---------- */
+
+.lote {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1.25rem;
+}
+
+.carro {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: var(--borde);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.carro h2 { font-size: 1.6rem; }
+.carro h2 a { text-decoration: none; }
+.carro h2 a:hover { text-decoration: underline; }
+.carro .boton { margin-top: auto; }
+
+.ficha { display: flex; gap: 1.5rem; margin: .25rem 0 1rem; }
+.ficha dt { color: var(--grafito); font-size: .85rem; }
+.ficha dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ficha-grande { gap: 2.5rem; flex-wrap: wrap; }
+.ficha-grande dd { font-size: 1.25rem; }
+
+.vende { color: var(--grafito); font-size: .95rem; }
+
+.vacio {
+  background: var(--superficie);
+  border: 1px dashed var(--grafito);
+  border-radius: var(--borde);
+  padding: 2rem;
+}
+
+/* ---------- Detalle ---------- */
+
+.detalle {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+.detalle-carro h1 { margin-bottom: 1rem; }
+
+.contacto {
+  background: var(--superficie);
+  border: 2px solid var(--asfalto);
+  border-radius: var(--borde);
+  padding: 1.5rem;
+}
+.contacto-nombre { font-size: 1.25rem; font-weight: 600; margin-bottom: .75rem; }
+.contacto ul { list-style: none; margin: 0; padding: 0; }
+.contacto li { padding: .6rem 0; border-top: 1px solid var(--linea); overflow-wrap: anywhere; }
+.contacto li span { display: block; color: var(--grafito); font-size: .85rem; }
+.contacto li a { font-size: 1.1rem; font-weight: 600; }
+
+/* ---------- Botones ---------- */
+
+.boton {
+  display: inline-block;
+  background: var(--asfalto);
+  color: #fff;
+  border: 2px solid var(--asfalto);
+  border-radius: var(--borde);
+  padding: .65rem 1.2rem;
+  font: 600 1rem var(--letra-texto);
+  text-decoration: none;
+  cursor: pointer;
+}
+.boton:hover { background: #000; border-color: #000; }
+.boton-claro { background: var(--superficie); color: var(--asfalto); }
+.boton-claro:hover { background: var(--asfalto); color: #fff; }
+
+.enlace {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+  cursor: pointer;
+}
+
+/* ---------- Formularios ---------- */
+
+.formulario { max-width: 32rem; }
+.formulario > p:not(.error) { color: var(--grafito); }
+.formulario form { display: flex; flex-direction: column; margin: 1.5rem 0; }
+.formulario label { font-weight: 600; margin: 1rem 0 .3rem; }
+.formulario input {
+  font: inherit;
+  padding: .65rem .75rem;
+  border: 1px solid #8a9198;
+  border-radius: var(--borde);
+  background: var(--superficie);
+  color: var(--asfalto);
+  width: 100%;
+}
+.formulario input:focus-visible { border-color: var(--foco); }
+.formulario small { color: var(--grafito); margin-top: .3rem; }
+.formulario .boton { margin-top: 1.75rem; align-self: flex-start; }
+.alterno { font-size: .95rem; }
+
+.pareja { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+.pareja > div { display: flex; flex-direction: column; }
+
+/* ---------- Mensajes ---------- */
+
+.aviso, .error {
+  border-left: 4px solid;
+  border-radius: 0 var(--borde) var(--borde) 0;
+  padding: .75rem 1rem;
+  max-width: none;
+  margin-bottom: 1.5rem;
+}
+.aviso { background: var(--ok-fondo); border-color: var(--ok); }
+.error { background: var(--error-fondo); border-color: var(--error); color: var(--error); }
+.error::first-letter, .vacio p::first-letter { text-transform: uppercase; }
+
+/* ---------- Mis vehículos ---------- */
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+}
+.tabla th, .tabla td { text-align: left; padding: .9rem 1rem; border-bottom: 1px solid var(--linea); vertical-align: middle; }
+.tabla th { font-size: .85rem; color: var(--grafito); font-weight: 600; }
+.tabla td:last-child { text-align: right; }
+.tabla form { margin: 0; }
+.tabla td[data-titulo="Precio"] { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.estado {
+  display: inline-block;
+  font-size: .85rem;
+  font-weight: 600;
+  padding: .2rem .6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.estado-pendiente { background: var(--espera-fondo); color: var(--espera); }
+.estado-publicada { background: var(--ok-fondo); color: var(--ok); }
+.estado-vendida { background: #e2e5e8; color: var(--grafito); }
+
+/* ---------- Pantallas pequeñas ---------- */
+
+@media (max-width: 720px) {
+  .detalle { grid-template-columns: 1fr; }
+
+  .tabla thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tabla, .tabla tbody, .tabla tr, .tabla td { display: block; width: 100%; }
+  .tabla tr { padding: .75rem 1rem; border-bottom: 1px solid var(--linea); }
+  .tabla td { border: 0; padding: .3rem 0; text-align: left; }
+  .tabla td:last-child { text-align: left; padding-top: .6rem; }
+  .tabla td[data-titulo]::before {
+    content: attr(data-titulo);
+    display: block;
+    color: var(--grafito);
+    font-size: .8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pareja { grid-template-columns: 1fr; }
+}

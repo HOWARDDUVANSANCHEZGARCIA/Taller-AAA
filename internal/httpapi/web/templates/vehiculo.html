@@ -1,0 +1,25 @@
+{{define "title"}}{{.Data.Marca}} {{.Data.Modelo}} {{.Data.Anio}}{{end}}
+{{define "content"}}
+{{with .Data}}
+<p class="migas"><a href="/">Volver al catálogo</a></p>
+<article class="detalle">
+  <div class="detalle-carro">
+    <h1>{{.Marca}} {{.Modelo}}</h1>
+    <p class="placa placa-precio placa-grande">{{pesos .Precio}}</p>
+    <dl class="ficha ficha-grande">
+      <div><dt>Año</dt><dd>{{.Anio}}</dd></div>
+      <div><dt>Recorrido</dt><dd>{{miles .Kilometraje}} km</dd></div>
+      <div><dt>Publicado el</dt><dd>{{.CreadoEn.Format "02/01/2006"}}</dd></div>
+    </dl>
+  </div>
+  <aside class="contacto" aria-labelledby="contacto-titulo">
+    <h2 id="contacto-titulo">Contacta al vendedor</h2>
+    <p class="contacto-nombre">{{.Vendedor.Nombre}}</p>
+    <ul>
+      <li><span>Teléfono</span><a href="{{tel .Vendedor.Telefono}}">{{.Vendedor.Telefono}}</a></li>
+      <li><span>Correo</span><a href="mailto:{{.Vendedor.Email}}">{{.Vendedor.Email}}</a></li>
+    </ul>
+  </aside>
+</article>
+{{end}}
+{{end}}

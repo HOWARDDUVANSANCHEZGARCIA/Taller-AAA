@@ -1,0 +1,16 @@
+{{define "title"}}Ingresar{{end}}
+{{define "content"}}
+<section class="formulario">
+  <h1>Ingresar</h1>
+  <p>Para publicar tus carros y reportar tus ventas.</p>
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  <form method="post" action="/ingresar">
+    <label for="email">Correo</label>
+    <input id="email" name="email" type="email" autocomplete="email" required value="{{.Data.Email}}">
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button class="boton" type="submit">Ingresar</button>
+  </form>
+  <p class="alterno">¿No tienes cuenta? <a href="/registro">Crea una para vender tu carro</a>.</p>
+</section>
+{{end}}

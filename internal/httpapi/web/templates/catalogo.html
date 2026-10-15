@@ -1,0 +1,29 @@
+{{define "title"}}Carros usados en venta{{end}}
+{{define "content"}}
+<section class="encabezado">
+  <h1>Carros usados en venta</h1>
+  <p>Mira los datos de cada carro y comunícate directamente con quien lo vende.</p>
+</section>
+
+{{if .Data}}
+<ul class="lote">
+  {{range .Data}}
+  <li class="carro">
+    <p class="placa placa-precio">{{pesos .Precio}}</p>
+    <h2><a href="/catalogo/{{.ID}}">{{.Marca}} {{.Modelo}}</a></h2>
+    <dl class="ficha">
+      <div><dt>Año</dt><dd>{{.Anio}}</dd></div>
+      <div><dt>Recorrido</dt><dd>{{miles .Kilometraje}} km</dd></div>
+    </dl>
+    <p class="vende">Lo vende {{.Vendedor.Nombre}}</p>
+    <a class="boton boton-claro" href="/catalogo/{{.ID}}">Ver contacto</a>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+<div class="vacio">
+  <h2>Todavía no hay carros publicados</h2>
+  {{if not .User}}<p>¿Vas a vender el tuyo? <a href="/registro">Crea una cuenta</a> y publícalo.</p>{{end}}
+</div>
+{{end}}
+{{end}}

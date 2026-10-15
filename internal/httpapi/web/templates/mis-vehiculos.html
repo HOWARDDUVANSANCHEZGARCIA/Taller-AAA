@@ -1,0 +1,39 @@
+{{define "title"}}Mis vehículos{{end}}
+{{define "content"}}
+<section class="encabezado encabezado-accion">
+  <div>
+    <h1>Mis vehículos</h1>
+    <p>Cuando vendas un carro, repórtalo para que salga del catálogo.</p>
+  </div>
+  <a class="boton" href="/publicar">Publicar vehículo</a>
+</section>
+
+{{if .Data}}
+<table class="tabla">
+  <thead>
+    <tr><th scope="col">Vehículo</th><th scope="col">Precio</th><th scope="col">Estado</th><th scope="col"><span class="oculto">Acción</span></th></tr>
+  </thead>
+  <tbody>
+    {{range .Data}}
+    <tr>
+      <td data-titulo="Vehículo"><strong>{{.Marca}} {{.Modelo}}</strong> {{.Anio}}, {{miles .Kilometraje}} km</td>
+      <td data-titulo="Precio">{{pesos .Precio}}</td>
+      <td data-titulo="Estado"><span class="estado estado-{{.Estado}}">{{estado .Estado}}</span></td>
+      <td>
+        {{if ne .Estado "vendida"}}
+        <form method="post" action="/mis-vehiculos/{{.ID}}/vendido">
+          <button class="boton boton-claro" type="submit">Reportar venta</button>
+        </form>
+        {{end}}
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<div class="vacio">
+  <h2>Aún no has publicado vehículos</h2>
+  <p><a href="/publicar">Publica el primero</a>; aparecerá aquí con su estado.</p>
+</div>
+{{end}}
+{{end}}

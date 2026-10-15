@@ -1,0 +1,42 @@
+{{define "layout"}}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{template "title" .}} · AutoMarket</title>
+  <link rel="stylesheet" href="/static/estilos.css">
+</head>
+<body>
+  <header class="barra">
+    <a class="placa placa-logo" href="/" aria-label="AutoMarket, ir al catálogo">
+      <span class="placa-texto">AUTOMARKET</span>
+      <span class="placa-ciudad">CALI</span>
+    </a>
+    <nav class="menu" aria-label="Principal">
+      <a href="/">Catálogo</a>
+      {{if .User}}
+        {{if eq .User.Rol "vendedor"}}
+          <a href="/publicar">Publicar vehículo</a>
+          <a href="/mis-vehiculos">Mis vehículos</a>
+        {{end}}
+        <form class="salir" method="post" action="/salir">
+          <span class="quien">{{.User.Nombre}}</span>
+          <button type="submit" class="enlace">Salir</button>
+        </form>
+      {{else}}
+        <a href="/ingresar">Ingresar</a>
+        <a class="menu-destacado" href="/registro">Vender mi carro</a>
+      {{end}}
+    </nav>
+  </header>
+
+  <main class="contenido">
+    {{if .Notice}}<p class="aviso" role="status">{{.Notice}}</p>{{end}}
+    {{template "content" .}}
+  </main>
+
+  <footer class="pie">
+    <p>AutoMarket conecta a quien vende un carro usado con quien lo quiere comprar. Cada publicación la revisa un administrador antes de salir en el catálogo.</p>
+  </footer>
+</body>
+</html>{{end}}

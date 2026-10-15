@@ -1,0 +1,33 @@
+{{define "title"}}Publicar vehículo{{end}}
+{{define "content"}}
+<section class="formulario">
+  <h1>Publicar vehículo</h1>
+  <p>Un administrador revisa cada publicación antes de mostrarla en el catálogo.</p>
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+  <form method="post" action="/publicar">
+    <div class="pareja">
+      <div>
+        <label for="marca">Marca</label>
+        <input id="marca" name="marca" required maxlength="50" placeholder="Renault" value="{{.Data.Marca}}">
+      </div>
+      <div>
+        <label for="modelo">Modelo</label>
+        <input id="modelo" name="modelo" required maxlength="50" placeholder="Koleos" value="{{.Data.Modelo}}">
+      </div>
+    </div>
+    <div class="pareja">
+      <div>
+        <label for="anio">Año</label>
+        <input id="anio" name="anio" inputmode="numeric" required placeholder="2019" value="{{.Data.Anio}}">
+      </div>
+      <div>
+        <label for="kilometraje">Recorrido en km</label>
+        <input id="kilometraje" name="kilometraje" inputmode="numeric" required placeholder="60.000" value="{{.Data.Kilometraje}}">
+      </div>
+    </div>
+    <label for="precio">Precio en pesos</label>
+    <input id="precio" name="precio" inputmode="numeric" required placeholder="78.000.000" value="{{.Data.Precio}}">
+    <button class="boton" type="submit">Enviar a revisión</button>
+  </form>
+</section>
+{{end}}
