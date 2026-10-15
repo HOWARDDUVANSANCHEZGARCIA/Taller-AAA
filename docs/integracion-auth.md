@@ -54,12 +54,12 @@ protected.POST("/vehiculos", func(c *gin.Context) {
 ## Qué necesita cada integrante
 
 - **Integrante 2 (vehículos):** use `u.ID` como `vendedorID` de la publicación. Para el contacto del vendedor en el catálogo público use `user.Repository.FindByID` y exponga `Nombre`, `Email` y `Telefono` (nunca `PasswordHash`).
-- **Integrante 3 (autorización):** escriba `RequireRole(roles ...user.Role)` sobre `CurrentUser(c)` (403 si el rol no está permitido). Para eliminar usuarios, agregue `Delete(id string) error` a `user.Repository` y a `FileRepository` (mismo patrón que `Create`: bloquear, modificar, `persist`). El registro solo crea vendedores, así que el administrador no sale de esta API: para sus pruebas, créelo directo con `repo.Create(user.User{..., Rol: user.RoleAdministrador})` y obtenga su token con `auth.TokenManager.Issue(id)`. Cómo existirá el administrador al ejecutar el servidor lo debe acordar el grupo.
+- **Integrante 3 (autorización):** `RequireRole(roles ...user.Role)` ya existe en `middleware.go` (403 si el rol no está permitido); ver [integracion-vehiculos.md](integracion-vehiculos.md). Para eliminar usuarios, agregue `Delete(id string) error` a `user.Repository` y a `FileRepository` (mismo patrón que `Create`: bloquear, modificar, `persist`). El registro solo crea vendedores, así que el administrador no sale de esta API: para sus pruebas, créelo directo con `repo.Create(user.User{..., Rol: user.RoleAdministrador})` y obtenga su token con `auth.TokenManager.Issue(id)`. Cómo existirá el administrador al ejecutar el servidor lo debe acordar el grupo.
 - **Integrante 4 (accounting):** registre `register` y `login` como operaciones con resultado (éxito, 400, 401, 409). El actor de `register` y `login` fallido es anónimo; en rutas protegidas sale de `CurrentUser(c)`. Un middleware global que envuelva `c.Next()` ve el usuario si `Authenticate` ya corrió.
 
 ## Decisiones de diseño
 
 - Contraseñas: PBKDF2-HMAC-SHA256 (`crypto/pbkdf2`), 210 000 iteraciones, sal aleatoria de 16 bytes, comparación en tiempo constante.
 - Tokens: `base64url(claims).base64url(HMAC-SHA256)`, vigencia 1 hora.
-- El login responde igual si el correo no existe o la clave es incorrecta (`401 credenciales inválidas`).
+- El login responde igual si el correo no existe o la clave es incorrecta (`401 credenciales inválidas`), y tarda lo mismo: si el correo no existe compara contra un hash de relleno.
 - Persistencia: JSON con mutex y escritura atómica (archivo temporal + `rename`).
