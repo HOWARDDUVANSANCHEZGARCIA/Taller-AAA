@@ -51,11 +51,11 @@ protected.POST("/vehiculos", func(c *gin.Context) {
 - **El rol nunca viene del cliente ni del token.** El token solo lleva `sub` (ID de usuario) y `exp`; `Authenticate` carga el usuario del repositorio en cada solicitud y de ahí sale el rol. Si un administrador elimina a un usuario, su token deja de servir de inmediato.
 - **Visitante** = ruta sin `Authenticate`.
 
-## Qué necesita cada integrante
+## Relación con los demás componentes
 
 - **Integrante 2 (vehículos):** use `u.ID` como `vendedorID` de la publicación. Para el contacto del vendedor en el catálogo público use `user.Repository.FindByID` y exponga `Nombre`, `Email` y `Telefono` (nunca `PasswordHash`).
-- **Integrante 3 (autorización):** `RequireRole(roles ...user.Role)` ya existe en `middleware.go` (403 si el rol no está permitido); ver [integracion-vehiculos.md](integracion-vehiculos.md). Para eliminar usuarios, agregue `Delete(id string) error` a `user.Repository` y a `FileRepository` (mismo patrón que `Create`: bloquear, modificar, `persist`). El registro solo crea vendedores, así que el administrador no sale de esta API: para sus pruebas, créelo directo con `repo.Create(user.User{..., Rol: user.RoleAdministrador})` y obtenga su token con `auth.TokenManager.Issue(id)`. Cómo existirá el administrador al ejecutar el servidor lo debe acordar el grupo.
-- **Integrante 4 (accounting):** registre `register` y `login` como operaciones con resultado (éxito, 400, 401, 409). El actor de `register` y `login` fallido es anónimo; en rutas protegidas sale de `CurrentUser(c)`. Un middleware global que envuelva `c.Next()` ve el usuario si `Authenticate` ya corrió.
+- **Autorización y administración:** `RequireRole(roles ...user.Role)` está en `middleware.go` (403 si el rol no está permitido). `user.Repository` tiene `List` y `Delete`. El registro público solo crea vendedores; el administrador se crea al arrancar con `ADMIN_EMAIL` y `ADMIN_PASSWORD` (`auth.Service.EnsureAdmin`). Ver [guia-ejecucion.md](guia-ejecucion.md).
+- **Accounting:** el middleware global `Accounting` registra `register` y `login` con su resultado. El actor de `register` y del login fallido es anónimo; en el login exitoso es el usuario que ingresó (`Session.User`), y en rutas protegidas sale de `CurrentUser(c)`.
 
 ## Decisiones de diseño
 

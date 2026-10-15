@@ -69,29 +69,14 @@ incorrecto, `404`, `409`. Siempre con la forma `{"error":"mensaje"}`.
   estados y verificación del dueño son idénticos. La traducción de errores a
   códigos HTTP está en un solo lugar: `errorStatus` en `httpapi/errors.go`.
 
-## Qué necesita cada integrante
+## Relación con los demás componentes
 
-- **Integrante 3 (autorización y administración):**
-  - `RequireRole(roles ...user.Role)` ya está en `httpapi/middleware.go`
-    (403 si el rol no alcanza). Úselo después de `Authenticate`.
-  - Para aprobar use `vehicle.Repository.Update`, que hace la verificación y
-    el cambio bajo el mismo bloqueo:
-    ```go
-    repo.Update(id, func(v *vehicle.Vehicle) error {
-        if v.Estado != vehicle.StatusPendiente { return ErrNoPendiente }
-        v.Estado = vehicle.StatusPublicada
-        return nil
-    })
-    ```
-  - Para eliminar publicaciones agregue `Delete(id string) error` a
-    `vehicle.Repository` y `FileRepository` (bloquear, quitar, `jsonfile.Save`).
-  - Si elimina un usuario, sus vehículos dejan de verse en el catálogo
-    automáticamente (no hay contacto que mostrar). Decidan si además se borran.
-  - Agregue sus errores nuevos a `errorStatus`.
-- **Integrante 4 (accounting):** un middleware global en `NewRouter`
-  (`httpapi/router.go`) ve todas las rutas, API y web. Después de `c.Next()`,
-  `CurrentUser(c)` devuelve al usuario en ambas (la web usa la misma clave de
-  contexto). `c.ClientIP()` es confiable porque `SetTrustedProxies(nil)`
+- **Administración (`internal/admin`):** aprueba con `vehicle.Service.Approve`,
+  que verifica y cambia el estado bajo el mismo bloqueo (`Repository.Update`).
+  Al eliminar un usuario se eliminan también sus publicaciones.
+- **Accounting (`internal/accounting`):** un middleware global en `NewRouter`
+  registra cada solicitud de la API y de la web. `CurrentUser(c)` da el actor
+  en ambas, y `c.ClientIP()` es confiable porque `SetTrustedProxies(nil)`
   ignora `X-Forwarded-For`.
 
 ## Decisiones de diseño

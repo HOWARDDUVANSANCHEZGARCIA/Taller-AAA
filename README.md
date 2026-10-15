@@ -8,6 +8,8 @@ cmd/server/            punto de entrada
 internal/user/         modelo de usuario y persistencia
 internal/auth/         registro, login, hash de contraseñas y tokens
 internal/vehicle/      publicaciones, estados y catálogo
+internal/admin/        moderación de publicaciones y usuarios
+internal/accounting/   registro de operaciones encadenado con HMAC
 internal/jsonfile/     carga y escritura atómica de archivos JSON
 internal/apperr/       errores comunes (validación)
 internal/ids/          identificadores aleatorios
@@ -19,8 +21,14 @@ docs/                  guías de integración
 ```bash
 go mod tidy          # primera vez
 go test ./...
-AUTH_SECRET=cambia-esto go run ./cmd/server   # http://localhost:8080
+AUTH_SECRET=clave-tokens ACCOUNTING_SECRET=clave-accounting \
+ADMIN_EMAIL=admin@automarket.com ADMIN_PASSWORD=clave-admin-123 \
+go run ./cmd/server  # http://localhost:8080
 ```
+
+- Guía de ejecución y recorrido de demostración: [docs/guia-ejecucion.md](docs/guia-ejecucion.md)
+- Diagramas: [estructura](docs/diagramas/estructura.png) y [comportamiento](docs/diagramas/comportamiento.png)
 
 - Autenticación: [docs/integracion-auth.md](docs/integracion-auth.md)
 - Vehículos, catálogo y sitio web: [docs/integracion-vehiculos.md](docs/integracion-vehiculos.md)
+- Uso de IA: [docs/declaracion-uso-ia.md](docs/declaracion-uso-ia.md)
