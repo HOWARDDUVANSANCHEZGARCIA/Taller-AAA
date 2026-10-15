@@ -68,3 +68,13 @@ func TestFileRepositoryConcurrentCreate(t *testing.T) {
 		t.Errorf("se crearon %d usuarios con el mismo correo; quería 1", created)
 	}
 }
+
+func TestHasRole(t *testing.T) {
+	u := User{Rol: RoleVendedor}
+	if !u.HasRole(RoleVendedor) || !u.HasRole(RoleAdministrador, RoleVendedor) {
+		t.Error("el vendedor debe tener el rol vendedor")
+	}
+	if u.HasRole(RoleAdministrador) || u.HasRole() {
+		t.Error("el vendedor no debe tener otros roles")
+	}
+}

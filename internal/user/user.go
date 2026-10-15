@@ -28,6 +28,16 @@ type User struct {
 	CreadoEn     time.Time `json:"creado_en"`
 }
 
+// HasRole indica si el usuario tiene alguno de los roles indicados.
+func (u User) HasRole(roles ...Role) bool {
+	for _, r := range roles {
+		if u.Rol == r {
+			return true
+		}
+	}
+	return false
+}
+
 var (
 	ErrEmailTaken = errors.New("el correo ya está registrado")
 	ErrNotFound   = errors.New("usuario no encontrado")

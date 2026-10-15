@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/apperr"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 )
 
@@ -29,10 +30,9 @@ var (
 	ErrUnauthenticated = errors.New("no autenticado")
 )
 
-// ValidationError describe un dato de entrada inválido.
-type ValidationError struct{ Msg string }
-
-func (e *ValidationError) Error() string { return e.Msg }
+// ValidationError describe un dato de entrada inválido. Es el mismo tipo
+// que usan los demás componentes (apperr), para manejar los errores igual.
+type ValidationError = apperr.ValidationError
 
 type RegisterInput struct {
 	Nombre   string
@@ -125,16 +125,16 @@ func (s *Service) Authenticate(token string) (user.User, error) {
 
 func validate(in RegisterInput) error {
 	if in.Nombre == "" || len(in.Nombre) > maxNameLen {
-		return &ValidationError{"el nombre es obligatorio y debe tener máximo 100 caracteres"}
+		return &ValidationError{Msg: "el nombre es obligatorio y debe tener máximo 100 caracteres"}
 	}
 	if addr, err := mail.ParseAddress(in.Email); err != nil || addr.Address != in.Email {
-		return &ValidationError{"el correo no es válido"}
+		return &ValidationError{Msg: "el correo no es válido"}
 	}
 	if !validPhone(in.Telefono) {
-		return &ValidationError{"el teléfono debe tener entre 7 y 15 dígitos"}
+		return &ValidationError{Msg: "el teléfono debe tener entre 7 y 15 dígitos"}
 	}
 	if n := len(in.Password); n < minPasswordLen || n > maxPasswordLen {
-		return &ValidationError{"la contraseña debe tener entre 8 y 128 caracteres"}
+		return &ValidationError{Msg: "la contraseña debe tener entre 8 y 128 caracteres"}
 	}
 	return nil
 }
