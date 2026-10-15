@@ -3,14 +3,13 @@
 package auth
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"net/mail"
 	"strings"
 	"time"
 
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/apperr"
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/ids"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 )
 
@@ -74,7 +73,7 @@ func (s *Service) Register(in RegisterInput) (user.User, error) {
 	if err != nil {
 		return user.User{}, err
 	}
-	id, err := newID()
+	id, err := ids.New()
 	if err != nil {
 		return user.User{}, err
 	}
@@ -166,12 +165,4 @@ func mustHash(password string) string {
 		panic(err)
 	}
 	return hash
-}
-
-func newID() (string, error) {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }
