@@ -34,6 +34,11 @@ var (
 // que usan los demás componentes (apperr), para manejar los errores igual.
 type ValidationError = apperr.ValidationError
 
+// dummyHash se compara cuando el correo no existe, para que el login tarde
+// lo mismo en ambos casos y no se pueda saber por el tiempo de respuesta
+// qué correos están registrados.
+var dummyHash = mustHash("clave-de-relleno-para-igualar-tiempos")
+
 type RegisterInput struct {
 	Nombre   string
 	Email    string
@@ -92,6 +97,7 @@ func (s *Service) Register(in RegisterInput) (user.User, error) {
 func (s *Service) Login(email, password string) (Session, error) {
 	u, err := s.users.FindByEmail(strings.TrimSpace(email))
 	if errors.Is(err, user.ErrNotFound) {
+		VerifyPassword(password, dummyHash)
 		return Session{}, ErrInvalidCredentials
 	}
 	if err != nil {
@@ -152,6 +158,14 @@ func validPhone(phone string) bool {
 		}
 	}
 	return digits >= minPhoneDigits && digits <= maxPhoneDigits
+}
+
+func mustHash(password string) string {
+	hash, err := HashPassword(password)
+	if err != nil {
+		panic(err)
+	}
+	return hash
 }
 
 func newID() (string, error) {

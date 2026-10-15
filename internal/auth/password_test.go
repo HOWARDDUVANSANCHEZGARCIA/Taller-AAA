@@ -30,3 +30,11 @@ func TestVerifyPasswordRejectsMalformedHash(t *testing.T) {
 		}
 	}
 }
+
+// El hash de relleno del login debe ser válido: si no lo fuera, VerifyPassword
+// respondería de inmediato y el tiempo volvería a delatar los correos.
+func TestDummyHashIsValid(t *testing.T) {
+	if !VerifyPassword("clave-de-relleno-para-igualar-tiempos", dummyHash) {
+		t.Error("dummyHash debe ser un hash PBKDF2 válido")
+	}
+}
