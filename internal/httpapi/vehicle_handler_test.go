@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/accounting"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
@@ -22,6 +23,7 @@ type testApp struct {
 	vehicles *vehicle.FileRepository
 	tokens   *auth.TokenManager
 	authSvc  *auth.Service
+	logPath  string // registro de accounting
 }
 
 func newTestApp(t *testing.T) *testApp {
@@ -39,12 +41,20 @@ func newTestApp(t *testing.T) *testApp {
 	tokens := auth.NewTokenManager([]byte("secreto-de-pruebas"), time.Hour)
 	authSvc := auth.NewService(users, tokens)
 	vehicleSvc := vehicle.NewService(vehicles, users)
+	logPath := filepath.Join(dir, "accounting.log")
+	accLog, err := accounting.Open(logPath, []byte("clave-accounting-pruebas"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { accLog.Close() })
 	return &testApp{
 		router: NewRouter(Services{
-			Auth:     authSvc,
-			Vehicles: vehicleSvc,
-			Admin:    admin.NewService(users, vehicleSvc),
+			Auth:       authSvc,
+			Vehicles:   vehicleSvc,
+			Admin:      admin.NewService(users, vehicleSvc),
+			Accounting: accLog,
 		}),
+		logPath:  logPath,
 		users:    users,
 		vehicles: vehicles,
 		tokens:   tokens,

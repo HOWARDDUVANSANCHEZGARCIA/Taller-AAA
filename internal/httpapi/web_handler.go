@@ -96,6 +96,7 @@ func (h *WebHandler) login(c *gin.Context) {
 		return
 	}
 	setSession(c, session)
+	c.Set(currentUserKey, session.User) // el accounting registra quién ingresó
 	c.Redirect(http.StatusSeeOther, "/")
 }
 

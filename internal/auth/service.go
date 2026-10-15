@@ -50,6 +50,7 @@ type RegisterInput struct {
 type Session struct {
 	Token     string
 	ExpiresAt time.Time
+	User      user.User // quién inició sesión (lo usa el registro de accounting)
 }
 
 type Service struct {
@@ -130,7 +131,7 @@ func (s *Service) Login(email, password string) (Session, error) {
 	}
 
 	token, expiresAt := s.tokens.Issue(u.ID)
-	return Session{Token: token, ExpiresAt: expiresAt}, nil
+	return Session{Token: token, ExpiresAt: expiresAt, User: u}, nil
 }
 
 // Authenticate identifica al solicitante a partir de un token. El usuario y

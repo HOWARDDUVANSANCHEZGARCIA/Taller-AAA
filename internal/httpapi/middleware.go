@@ -1,10 +1,12 @@
 package httpapi
 
 import (
+	"log"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/accounting"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 )
@@ -69,5 +71,40 @@ func RequireRole(roles ...user.Role) gin.HandlerFunc {
 			return
 		}
 		c.Next()
+	}
+}
+
+// Accounting registra cada solicitud después de procesarla, cuando ya se
+// conocen el usuario (si Authenticate o el login lo identificaron) y el
+// resultado. La hoja de estilos no se registra: no es una operación.
+//
+// Si el registro falla, la respuesta ya se envió; el error queda en el log
+// del servidor para que el operador lo revise.
+func Accounting(l *accounting.Log) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+
+		if strings.HasPrefix(c.Request.URL.Path, "/static/") {
+			return
+		}
+		actor, rol := "anonimo", "visitante"
+		if u, ok := CurrentUser(c); ok {
+			actor, rol = u.ID, string(u.Rol)
+		}
+		route := c.FullPath()
+		if route == "" {
+			route = "(ruta inexistente)"
+		}
+		err := l.Record(accounting.Entry{
+			Operacion: c.Request.Method + " " + route,
+			Recurso:   c.Request.URL.Path,
+			Actor:     actor,
+			Rol:       rol,
+			Resultado: c.Writer.Status(),
+			IP:        c.ClientIP(),
+		})
+		if err != nil {
+			log.Printf("accounting: no se pudo registrar %s %s: %v", c.Request.Method, c.Request.URL.Path, err)
+		}
 	}
 }

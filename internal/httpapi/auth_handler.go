@@ -81,5 +81,6 @@ func (h *AuthHandler) login(c *gin.Context) {
 		respondServiceError(c, err)
 		return
 	}
+	c.Set(currentUserKey, session.User) // el accounting registra quién ingresó
 	c.JSON(http.StatusOK, loginResponse{Token: session.Token, Tipo: "Bearer", ExpiraEn: session.ExpiresAt})
 }

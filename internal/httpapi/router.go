@@ -3,6 +3,7 @@ package httpapi
 import (
 	"github.com/gin-gonic/gin"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/accounting"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/vehicle"
@@ -10,9 +11,10 @@ import (
 
 // Services agrupa los servicios que necesita la capa HTTP.
 type Services struct {
-	Auth     *auth.Service
-	Vehicles *vehicle.Service
-	Admin    *admin.Service
+	Auth       *auth.Service
+	Vehicles   *vehicle.Service
+	Admin      *admin.Service
+	Accounting *accounting.Log
 }
 
 // NewRouter arma todas las rutas de la aplicación. Lo usan main y las
@@ -24,6 +26,8 @@ func NewRouter(s Services) *gin.Engine {
 	// conexión y no el encabezado X-Forwarded-For, que el cliente puede
 	// falsificar (importa para el registro de accounting). Con nil no falla.
 	_ = r.SetTrustedProxies(nil)
+	// Accounting va primero para envolver todas las rutas, públicas y protegidas.
+	r.Use(Accounting(s.Accounting))
 
 	RegisterAuthRoutes(r, s.Auth)
 	RegisterVehicleRoutes(r, s.Vehicles, s.Auth)

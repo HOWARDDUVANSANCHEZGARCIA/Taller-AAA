@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/accounting"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/httpapi"
@@ -29,10 +30,14 @@ func main() {
 	ensureAdmin(authSvc)
 	vehicleSvc := vehicle.NewService(vehicles, users)
 
+	accLog := openAccounting()
+	defer accLog.Close()
+
 	r := httpapi.NewRouter(httpapi.Services{
-		Auth:     authSvc,
-		Vehicles: vehicleSvc,
-		Admin:    admin.NewService(users, vehicleSvc),
+		Auth:       authSvc,
+		Vehicles:   vehicleSvc,
+		Admin:      admin.NewService(users, vehicleSvc),
+		Accounting: accLog,
 	})
 
 	addr := ":" + env("PORT", "8080")
@@ -52,6 +57,23 @@ func authSecret() []byte {
 		log.Fatalf("generando clave: %v", err)
 	}
 	return secret
+}
+
+// openAccounting abre el registro de accounting con ACCOUNTING_SECRET. La
+// clave es obligatoria y debe ser estable: con ella se firma cada entrada y se
+// verifica la cadena al arrancar. Si el registro fue alterado, el servidor no
+// arranca e indica la línea.
+func openAccounting() *accounting.Log {
+	secret := os.Getenv("ACCOUNTING_SECRET")
+	if secret == "" {
+		log.Fatal("ACCOUNTING_SECRET no definido: es la clave que protege la integridad del registro de accounting")
+	}
+	path := env("ACCOUNTING_FILE", "data/accounting.log")
+	l, err := accounting.Open(path, []byte(secret))
+	if err != nil {
+		log.Fatalf("abriendo %s: %v", path, err)
+	}
+	return l
 }
 
 // ensureAdmin crea el administrador con ADMIN_EMAIL y ADMIN_PASSWORD (y
