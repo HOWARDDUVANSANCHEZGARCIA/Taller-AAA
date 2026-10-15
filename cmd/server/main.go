@@ -6,11 +6,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/httpapi"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/vehicle"
 )
 
 const tokenTTL = time.Hour
@@ -20,15 +19,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("abriendo usuarios: %v", err)
 	}
+	vehicles, err := vehicle.NewFileRepository(env("VEHICLES_FILE", "data/vehicles.json"))
+	if err != nil {
+		log.Fatalf("abriendo vehículos: %v", err)
+	}
 
 	tokens := auth.NewTokenManager(authSecret(), tokenTTL)
-	authSvc := auth.NewService(users, tokens)
-
-	r := gin.New()
-	r.Use(gin.Recovery())
-	httpapi.RegisterAuthRoutes(r, authSvc)
-	// Las rutas protegidas de los demás componentes se agrupan así:
-	//   protected := r.Group("/", httpapi.Authenticate(authSvc))
+	r := httpapi.NewRouter(httpapi.Services{
+		Auth:     auth.NewService(users, tokens),
+		Vehicles: vehicle.NewService(vehicles, users),
+	})
 
 	addr := ":" + env("PORT", "8080")
 	log.Printf("AutoMarket escuchando en %s", addr)

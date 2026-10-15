@@ -52,3 +52,22 @@ func bearerToken(header string) (string, bool) {
 	}
 	return strings.TrimSpace(token), true
 }
+
+// RequireRole deja pasar solo a usuarios autenticados con alguno de los roles
+// indicados; si no, responde 403. Va después de Authenticate:
+//
+//	r.POST("/vehiculos", Authenticate(svc), RequireRole(user.RoleVendedor), h.publish)
+func RequireRole(roles ...user.Role) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		u, ok := CurrentUser(c)
+		if !ok {
+			respondServiceError(c, auth.ErrUnauthenticated)
+			return
+		}
+		if !u.HasRole(roles...) {
+			respondServiceError(c, errForbidden)
+			return
+		}
+		c.Next()
+	}
+}
