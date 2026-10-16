@@ -2,16 +2,22 @@ package vehicle
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/apperr"
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/imagestore"
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/testimg"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 )
 
 type fixture struct {
 	svc    *Service
+	imgDir string
 	repo   *FileRepository
 	users  *user.FileRepository
 	seller user.User
@@ -30,7 +36,8 @@ func newFixture(t *testing.T) fixture {
 		t.Fatal(err)
 	}
 	f := fixture{
-		svc:    NewService(repo, users),
+		svc:    NewService(repo, users, imagestore.New(filepath.Join(dir, "imagenes"))),
+		imgDir: filepath.Join(dir, "imagenes"),
 		repo:   repo,
 		users:  users,
 		seller: user.User{ID: "v1", Nombre: "Ana", Email: "ana@correo.com", Telefono: "3001234567", Rol: user.RoleVendedor},
@@ -45,7 +52,8 @@ func newFixture(t *testing.T) fixture {
 }
 
 func validPublish() PublishInput {
-	return PublishInput{Marca: " Renault ", Modelo: "Koleos", Anio: 2019, Precio: 78_000_000, Kilometraje: 60_000}
+	return PublishInput{Marca: " Renault ", Modelo: "Koleos", Anio: 2019, Precio: 78_000_000, Kilometraje: 60_000,
+		Imagenes: [][]byte{testimg.PNG(), testimg.PNG()}}
 }
 
 // approve hace lo que hará el administrador (HU-ADM-01) para poder probar el catálogo.
@@ -72,8 +80,55 @@ func TestPublishCreatesPendingVehicleOfSeller(t *testing.T) {
 	if v.Marca != "Renault" {
 		t.Errorf("Marca = %q; debe quitar espacios", v.Marca)
 	}
-	if stored, err := f.repo.FindByID(v.ID); err != nil || stored != v {
+	if stored, err := f.repo.FindByID(v.ID); err != nil || !reflect.DeepEqual(stored, v) {
 		t.Errorf("guardado = %+v, %v", stored, err)
+	}
+	if len(v.Imagenes) != 2 {
+		t.Fatalf("Imagenes = %v; quería 2", v.Imagenes)
+	}
+	for _, name := range v.Imagenes {
+		if _, err := os.Stat(filepath.Join(f.imgDir, v.ID, name)); err != nil {
+			t.Errorf("la imagen %s debe existir en disco: %v", name, err)
+		}
+	}
+}
+
+// Las fotos siguen la misma regla del catálogo: públicas solo si la
+// publicación está publicada; si no, solo para su vendedor y el administrador.
+func TestImagePathAccess(t *testing.T) {
+	f := newFixture(t)
+	v, _ := f.svc.Publish(f.seller.ID, validPublish())
+	name := v.Imagenes[0]
+	admin := &user.User{ID: "admin", Rol: user.RoleAdministrador}
+
+	check := func(label string, viewer *user.User, wantOK bool) {
+		t.Helper()
+		path, err := f.svc.ImagePath(viewer, v.ID, name)
+		if wantOK && (err != nil || path == "") {
+			t.Errorf("%s: debe poder ver la foto: %v", label, err)
+		}
+		if !wantOK && !errors.Is(err, ErrNotFound) {
+			t.Errorf("%s: err = %v; quería ErrNotFound", label, err)
+		}
+	}
+
+	check("visitante, pendiente", nil, false)
+	check("otro vendedor, pendiente", &f.other, false)
+	check("dueño, pendiente", &f.seller, true)
+	check("administrador, pendiente", admin, true)
+
+	f.approve(t, v.ID)
+	check("visitante, publicada", nil, true)
+
+	_, _ = f.svc.ReportSale(f.seller.ID, v.ID)
+	check("visitante, vendida", nil, false)
+	check("dueño, vendida", &f.seller, true)
+
+	if _, err := f.svc.ImagePath(&f.seller, v.ID, "../../users.json"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("nombre ajeno a la publicación: err = %v", err)
+	}
+	if _, err := f.svc.ImagePath(&f.seller, "no-existe", name); !errors.Is(err, ErrNotFound) {
+		t.Errorf("vehículo inexistente: err = %v", err)
 	}
 }
 
@@ -81,15 +136,18 @@ func TestPublishValidatesInput(t *testing.T) {
 	f := newFixture(t)
 	nextYear := time.Now().Year() + 1
 	mutate := map[string]func(*PublishInput){
-		"marca vacía":          func(in *PublishInput) { in.Marca = "  " },
-		"modelo vacío":         func(in *PublishInput) { in.Modelo = "" },
-		"marca muy larga":      func(in *PublishInput) { in.Marca = string(make([]rune, 51)) },
-		"año muy antiguo":      func(in *PublishInput) { in.Anio = 1899 },
-		"año futuro":           func(in *PublishInput) { in.Anio = nextYear + 1 },
-		"precio cero":          func(in *PublishInput) { in.Precio = 0 },
-		"precio negativo":      func(in *PublishInput) { in.Precio = -5 },
-		"precio absurdo":       func(in *PublishInput) { in.Precio = maxPrecio + 1 },
-		"kilometraje negativo": func(in *PublishInput) { in.Kilometraje = -1 },
+		"marca vacía":           func(in *PublishInput) { in.Marca = "  " },
+		"modelo vacío":          func(in *PublishInput) { in.Modelo = "" },
+		"marca muy larga":       func(in *PublishInput) { in.Marca = string(make([]rune, 51)) },
+		"año muy antiguo":       func(in *PublishInput) { in.Anio = 1899 },
+		"año futuro":            func(in *PublishInput) { in.Anio = nextYear + 1 },
+		"precio cero":           func(in *PublishInput) { in.Precio = 0 },
+		"precio negativo":       func(in *PublishInput) { in.Precio = -5 },
+		"precio absurdo":        func(in *PublishInput) { in.Precio = maxPrecio + 1 },
+		"kilometraje negativo":  func(in *PublishInput) { in.Kilometraje = -1 },
+		"sin fotos":             func(in *PublishInput) { in.Imagenes = nil },
+		"más de 8 fotos":        func(in *PublishInput) { in.Imagenes = make([][]byte, 9) },
+		"foto que no es imagen": func(in *PublishInput) { in.Imagenes = [][]byte{testimg.PNG(), []byte("hola")} },
 	}
 	for name, change := range mutate {
 		in := validPublish()
@@ -101,6 +159,9 @@ func TestPublishValidatesInput(t *testing.T) {
 	}
 	if all, _ := f.repo.List(); len(all) != 0 {
 		t.Errorf("no debe guardar publicaciones inválidas; hay %d", len(all))
+	}
+	if entries, _ := os.ReadDir(f.imgDir); len(entries) != 0 {
+		t.Errorf("no deben quedar imágenes de publicaciones rechazadas: %v", entries)
 	}
 
 	in := validPublish()
@@ -247,5 +308,67 @@ func TestDeleteAndDeleteBySeller(t *testing.T) {
 	all, _ := f.svc.All()
 	if len(all) != 1 || all[0].ID != b1.ID {
 		t.Errorf("quedan %+v; quería solo la de Beto", all)
+	}
+	if entries, _ := os.ReadDir(f.imgDir); len(entries) != 1 || entries[0].Name() != b1.ID {
+		t.Errorf("solo deben quedar las imágenes de Beto: %v", entries)
+	}
+}
+
+func TestAddAndRemoveImagesWhilePending(t *testing.T) {
+	f := newFixture(t)
+	v, _ := f.svc.Publish(f.seller.ID, validPublish()) // 2 fotos
+
+	v, err := f.svc.AddImages(f.seller.ID, v.ID, [][]byte{testimg.PNG(), testimg.PNG()})
+	if err != nil || len(v.Imagenes) != 4 {
+		t.Fatalf("AddImages = %v, %v; quería 4 fotos", v.Imagenes, err)
+	}
+	if _, err := f.svc.AddImages(f.seller.ID, v.ID, make([][]byte, 5)); err == nil {
+		t.Error("no debe pasar de 8 fotos")
+	}
+	if _, err := f.svc.AddImages(f.other.ID, v.ID, [][]byte{testimg.PNG()}); !errors.Is(err, ErrNotOwner) {
+		t.Errorf("otro vendedor: err = %v; quería ErrNotOwner", err)
+	}
+	var verr *apperr.ValidationError
+	if _, err := f.svc.AddImages(f.seller.ID, v.ID, [][]byte{[]byte("no es imagen")}); !errors.As(err, &verr) {
+		t.Errorf("archivo inválido: err = %v", err)
+	}
+
+	removed := v.Imagenes[0]
+	v, err = f.svc.RemoveImage(f.seller.ID, v.ID, removed)
+	if err != nil || len(v.Imagenes) != 3 || slices.Contains(v.Imagenes, removed) {
+		t.Fatalf("RemoveImage = %v, %v", v.Imagenes, err)
+	}
+	if _, err := os.Stat(filepath.Join(f.imgDir, v.ID, removed)); !os.IsNotExist(err) {
+		t.Error("la foto quitada debe borrarse del disco")
+	}
+	if entries, _ := os.ReadDir(filepath.Join(f.imgDir, v.ID)); len(entries) != 3 {
+		t.Errorf("en disco deben quedar exactamente 3 fotos; hay %d (no deben quedar sueltas)", len(entries))
+	}
+	if _, err := f.svc.RemoveImage(f.seller.ID, v.ID, "no-existe.png"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("foto inexistente: err = %v", err)
+	}
+
+	for len(v.Imagenes) > 1 {
+		v, _ = f.svc.RemoveImage(f.seller.ID, v.ID, v.Imagenes[0])
+	}
+	if _, err := f.svc.RemoveImage(f.seller.ID, v.ID, v.Imagenes[0]); !errors.As(err, &verr) {
+		t.Errorf("quitar la última foto: err = %v; quería ValidationError", err)
+	}
+}
+
+// Después de aprobada, el administrador ya revisó las fotos: no se pueden cambiar.
+func TestImagesLockedAfterApproval(t *testing.T) {
+	f := newFixture(t)
+	v, _ := f.svc.Publish(f.seller.ID, validPublish())
+	f.approve(t, v.ID)
+
+	if _, err := f.svc.AddImages(f.seller.ID, v.ID, [][]byte{testimg.PNG()}); !errors.Is(err, ErrNotEditable) {
+		t.Errorf("agregar tras aprobar: err = %v; quería ErrNotEditable", err)
+	}
+	if _, err := f.svc.RemoveImage(f.seller.ID, v.ID, v.Imagenes[0]); !errors.Is(err, ErrNotEditable) {
+		t.Errorf("quitar tras aprobar: err = %v; quería ErrNotEditable", err)
+	}
+	if entries, _ := os.ReadDir(filepath.Join(f.imgDir, v.ID)); len(entries) != 2 {
+		t.Errorf("no deben quedar archivos nuevos en disco; hay %d", len(entries))
 	}
 }

@@ -33,6 +33,7 @@ type Vehicle struct {
 	Precio      int64     `json:"precio"`
 	Kilometraje int       `json:"kilometraje"`
 	Estado      Status    `json:"estado"`
+	Imagenes    []string  `json:"imagenes"` // nombres de archivo; la primera es la portada
 	CreadoEn    time.Time `json:"creado_en"`
 }
 
@@ -41,6 +42,7 @@ var (
 	ErrNotOwner    = errors.New("el vehículo pertenece a otro vendedor")
 	ErrAlreadySold = errors.New("el vehículo ya fue reportado como vendido")
 	ErrNotPending  = errors.New("solo se pueden aprobar publicaciones pendientes")
+	ErrNotEditable = errors.New("las fotos solo se pueden cambiar mientras la publicación está pendiente de aprobación")
 )
 
 // Repository es el contrato de persistencia de vehículos.

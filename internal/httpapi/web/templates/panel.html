@@ -3,7 +3,7 @@
 {{$self := .Data.SelfID}}
 <section class="encabezado">
   <h1>Panel de administración</h1>
-  <p>Aprueba las publicaciones nuevas para que salgan en el catálogo y elimina las publicaciones o cuentas que no deban estar.</p>
+  <p>Revisa las fotos y los datos de cada publicación nueva, apruébala para que salga en el catálogo y elimina las publicaciones o cuentas que no deban estar.</p>
 </section>
 
 <section class="bloque" aria-labelledby="titulo-publicaciones">
@@ -16,7 +16,19 @@
     <tbody>
       {{range .Data.Publications}}
       <tr>
-        <td data-titulo="Vehículo"><strong>{{.Marca}} {{.Modelo}}</strong> {{.Anio}}, {{miles .Kilometraje}} km</td>
+        <td data-titulo="Vehículo">
+          <strong>{{.Marca}} {{.Modelo}}</strong> {{.Anio}}, {{miles .Kilometraje}} km
+          {{$id := .ID}}
+          {{if .Imagenes}}
+          <div class="tira" aria-label="Fotos para revisar">
+            {{range $i, $img := .Imagenes}}
+            <a href="{{imagen $id $img}}" target="_blank" rel="noopener" title="Abrir foto {{suma $i 1}} en otra pestaña">
+              <img src="{{imagen $id $img}}" alt="Foto {{suma $i 1}}" loading="lazy">
+            </a>
+            {{end}}
+          </div>
+          {{end}}
+        </td>
         <td data-titulo="Vendedor">{{.Vendedor}}</td>
         <td data-titulo="Precio">{{pesos .Precio}}</td>
         <td data-titulo="Estado"><span class="estado estado-{{.Estado}}">{{estado .Estado}}</span></td>

@@ -47,9 +47,15 @@ func loadWebPages() webPages {
 		"miles":  miles,
 		"estado": func(s vehicle.Status) string { return vehicleStatusLabel[s] },
 		"tel":    telURL,
+		"imagen": imageURL,
+		"fotos":  photoCount,
+		"suma":   func(a, b int) int { return a + b },
+		// anterior y siguiente dan la vuelta: de la primera a la última y al revés.
+		"anterior":  func(i, n int) int { return (i - 1 + n) % n },
+		"siguiente": func(i, n int) int { return (i + 1) % n },
 	}
 	pages := webPages{}
-	for _, name := range []string{"catalogo", "vehiculo", "ingresar", "registro", "publicar", "mis-vehiculos", "panel", "error"} {
+	for _, name := range []string{"catalogo", "vehiculo", "ingresar", "registro", "publicar", "mis-vehiculos", "fotos", "panel", "error"} {
 		pages[name] = template.Must(template.New(name).Funcs(funcs).
 			ParseFS(webFS, "web/templates/layout.html", "web/templates/"+name+".html"))
 	}
@@ -148,6 +154,14 @@ func telURL(phone string) template.URL {
 		}
 	}
 	return template.URL("tel:" + b.String())
+}
+
+// photoCount: 1 -> "1 foto", 3 -> "3 fotos".
+func photoCount(n int) string {
+	if n == 1 {
+		return "1 foto"
+	}
+	return strconv.Itoa(n) + " fotos"
 }
 
 // vehicleStatusLabel es el texto que ve el vendedor para cada estado.

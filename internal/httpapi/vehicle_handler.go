@@ -22,20 +22,14 @@ func RegisterVehicleRoutes(r gin.IRouter, vehicles *vehicle.Service, authSvc *au
 
 	r.GET("/vehiculos", h.catalog)
 	r.GET("/vehiculos/:id", h.catalogItem)
+	r.GET("/vehiculos/:id/imagenes/:nombre", OptionalAuthenticate(authSvc), h.image)
 
 	seller := r.Group("", Authenticate(authSvc), RequireRole(user.RoleVendedor))
 	seller.POST("/vehiculos", h.publish)
 	seller.POST("/vehiculos/:id/venta", h.reportSale)
+	seller.POST("/vehiculos/:id/imagenes", h.addImages)
+	seller.DELETE("/vehiculos/:id/imagenes/:nombre", h.removeImage)
 	seller.GET("/vendedor/vehiculos", h.mine)
-}
-
-// publishRequest no tiene vendedor ni estado: los fija el servidor.
-type publishRequest struct {
-	Marca       string `json:"marca"`
-	Modelo      string `json:"modelo"`
-	Anio        int    `json:"anio"`
-	Precio      int64  `json:"precio"`
-	Kilometraje int    `json:"kilometraje"`
 }
 
 type vehicleResponse struct {
@@ -46,6 +40,7 @@ type vehicleResponse struct {
 	Precio      int64          `json:"precio"`
 	Kilometraje int            `json:"kilometraje"`
 	Estado      vehicle.Status `json:"estado"`
+	Imagenes    []string       `json:"imagenes"` // URLs; la primera es la portada
 	CreadoEn    time.Time      `json:"creado_en"`
 }
 
@@ -82,20 +77,16 @@ func (h *VehicleHandler) catalogItem(c *gin.Context) {
 	c.JSON(http.StatusOK, toListingResponse(l))
 }
 
+// publish recibe multipart/form-data (los datos y las fotos). El vendedor y
+// el estado no se leen del formulario: los fija el servidor.
 func (h *VehicleHandler) publish(c *gin.Context) {
-	var req publishRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		abortWithError(c, http.StatusBadRequest, "el cuerpo debe ser un JSON válido")
+	_, in, err := readPublishForm(c)
+	if err != nil {
+		respondServiceError(c, err)
 		return
 	}
 	seller, _ := CurrentUser(c)
-	v, err := h.svc.Publish(seller.ID, vehicle.PublishInput{
-		Marca:       req.Marca,
-		Modelo:      req.Modelo,
-		Anio:        req.Anio,
-		Precio:      req.Precio,
-		Kilometraje: req.Kilometraje,
-	})
+	v, err := h.svc.Publish(seller.ID, in)
 	if err != nil {
 		respondServiceError(c, err)
 		return
@@ -127,10 +118,61 @@ func (h *VehicleHandler) mine(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// addImages agrega fotos (multipart, campo "imagenes") a una publicación
+// propia mientras sigue pendiente.
+func (h *VehicleHandler) addImages(c *gin.Context) {
+	images, err := readImages(c)
+	if err != nil {
+		respondServiceError(c, err)
+		return
+	}
+	seller, _ := CurrentUser(c)
+	v, err := h.svc.AddImages(seller.ID, c.Param("id"), images)
+	if err != nil {
+		respondServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, toVehicleResponse(v))
+}
+
+// removeImage quita una foto de una publicación propia mientras sigue pendiente.
+func (h *VehicleHandler) removeImage(c *gin.Context) {
+	seller, _ := CurrentUser(c)
+	v, err := h.svc.RemoveImage(seller.ID, c.Param("id"), c.Param("nombre"))
+	if err != nil {
+		respondServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, toVehicleResponse(v))
+}
+
+// image entrega una foto si el solicitante puede verla (ver
+// vehicle.Service.ImagePath). nosniff impide que el navegador la interprete
+// como algo distinto de una imagen.
+func (h *VehicleHandler) image(c *gin.Context) {
+	var viewer *user.User
+	if u, ok := CurrentUser(c); ok {
+		viewer = &u
+	}
+	path, err := h.svc.ImagePath(viewer, c.Param("id"), c.Param("nombre"))
+	if err != nil {
+		respondServiceError(c, err)
+		return
+	}
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Header("Cache-Control", "private, max-age=300")
+	c.File(path)
+}
+
 func toVehicleResponse(v vehicle.Vehicle) vehicleResponse {
+	urls := make([]string, 0, len(v.Imagenes))
+	for _, name := range v.Imagenes {
+		urls = append(urls, imageURL(v.ID, name))
+	}
 	return vehicleResponse{
 		ID: v.ID, Marca: v.Marca, Modelo: v.Modelo, Anio: v.Anio,
-		Precio: v.Precio, Kilometraje: v.Kilometraje, Estado: v.Estado, CreadoEn: v.CreadoEn,
+		Precio: v.Precio, Kilometraje: v.Kilometraje, Estado: v.Estado,
+		Imagenes: urls, CreadoEn: v.CreadoEn,
 	}
 }
 

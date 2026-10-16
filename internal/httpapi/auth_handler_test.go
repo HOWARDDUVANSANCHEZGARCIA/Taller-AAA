@@ -37,6 +37,9 @@ func newTestRouter(t *testing.T) (*gin.Engine, *auth.Service) {
 }
 
 func do(r http.Handler, method, path, body, authorization string) *httptest.ResponseRecorder {
+	if body == vehicleForm {
+		return sendMultipart(r, path, standardFields(), twoImages(), authorization, nil)
+	}
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	if authorization != "" {

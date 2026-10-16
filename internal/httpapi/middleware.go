@@ -36,6 +36,25 @@ func Authenticate(svc *auth.Service) gin.HandlerFunc {
 	}
 }
 
+// OptionalAuthenticate identifica al solicitante si presenta un token (en el
+// encabezado Bearer o en la cookie de sesión de las páginas), pero no exige
+// ninguno: deja pasar al visitante. Lo usan las fotos, que son públicas o
+// privadas según el estado de la publicación.
+func OptionalAuthenticate(svc *auth.Service) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token, ok := bearerToken(c.GetHeader("Authorization"))
+		if !ok {
+			token, _ = c.Cookie(sessionCookie)
+		}
+		if token != "" {
+			if u, err := svc.Authenticate(token); err == nil {
+				c.Set(currentUserKey, u)
+			}
+		}
+		c.Next()
+	}
+}
+
 // CurrentUser devuelve el usuario autenticado de la solicitud. El segundo
 // valor es false si la ruta no pasó por Authenticate.
 func CurrentUser(c *gin.Context) (user.User, bool) {

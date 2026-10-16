@@ -4,7 +4,7 @@
   <h1>Publicar vehículo</h1>
   <p>Un administrador revisa cada publicación antes de mostrarla en el catálogo.</p>
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
-  <form method="post" action="/publicar">
+  <form method="post" action="/publicar" enctype="multipart/form-data">
     <div class="pareja">
       <div>
         <label for="marca">Marca</label>
@@ -27,6 +27,9 @@
     </div>
     <label for="precio">Precio en pesos</label>
     <input id="precio" name="precio" inputmode="numeric" required placeholder="78.000.000" value="{{.Data.Precio}}">
+    <label for="imagenes">Fotos del vehículo</label>
+    <input id="imagenes" name="imagenes" type="file" accept="image/jpeg,image/png" multiple required aria-describedby="imagenes-ayuda">
+    <small id="imagenes-ayuda">De 1 a 8 fotos en JPG o PNG, máximo 5 MB cada una. La primera será la portada. Puedes elegir varias a la vez.{{if .Error}} Vuelve a seleccionarlas: por seguridad el navegador no las conserva.{{end}}</small>
     <button class="boton" type="submit">Enviar a revisión</button>
   </form>
 </section>

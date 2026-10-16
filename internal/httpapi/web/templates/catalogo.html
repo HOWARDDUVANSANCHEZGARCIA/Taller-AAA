@@ -2,21 +2,29 @@
 {{define "content"}}
 <section class="encabezado">
   <h1>Carros usados en venta</h1>
-  <p>Mira los datos de cada carro y comunícate directamente con quien lo vende.</p>
+  <p>Mira las fotos y los datos de cada carro y comunícate directamente con quien lo vende.</p>
 </section>
 
 {{if .Data}}
 <ul class="lote">
   {{range .Data}}
   <li class="carro">
-    <p class="placa placa-precio">{{pesos .Precio}}</p>
-    <h2><a href="/catalogo/{{.ID}}">{{.Marca}} {{.Modelo}}</a></h2>
-    <dl class="ficha">
-      <div><dt>Año</dt><dd>{{.Anio}}</dd></div>
-      <div><dt>Recorrido</dt><dd>{{miles .Kilometraje}} km</dd></div>
-    </dl>
-    <p class="vende">Lo vende {{.Vendedor.Nombre}}</p>
-    <a class="boton boton-claro" href="/catalogo/{{.ID}}">Ver contacto</a>
+    {{if .Imagenes}}
+    <a class="portada" href="/catalogo/{{.ID}}" tabindex="-1" aria-hidden="true">
+      <img src="{{imagen .ID (index .Imagenes 0)}}" alt="" loading="lazy">
+      <span class="contador">{{fotos (len .Imagenes)}}</span>
+    </a>
+    {{end}}
+    <div class="carro-cuerpo">
+      <p class="placa placa-precio">{{pesos .Precio}}</p>
+      <h2><a href="/catalogo/{{.ID}}">{{.Marca}} {{.Modelo}}</a></h2>
+      <dl class="ficha">
+        <div><dt>Año</dt><dd>{{.Anio}}</dd></div>
+        <div><dt>Recorrido</dt><dd>{{miles .Kilometraje}} km</dd></div>
+      </dl>
+      <p class="vende">Lo vende {{.Vendedor.Nombre}}</p>
+      <a class="boton boton-claro" href="/catalogo/{{.ID}}">Ver fotos y contacto</a>
+    </div>
   </li>
   {{end}}
 </ul>

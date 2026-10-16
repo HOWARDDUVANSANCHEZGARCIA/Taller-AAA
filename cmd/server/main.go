@@ -10,6 +10,7 @@ import (
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/httpapi"
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/imagestore"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/vehicle"
 )
@@ -28,7 +29,8 @@ func main() {
 
 	authSvc := auth.NewService(users, auth.NewTokenManager(authSecret(), tokenTTL))
 	ensureAdmin(authSvc)
-	vehicleSvc := vehicle.NewService(vehicles, users)
+	images := imagestore.New(env("IMAGES_DIR", "data/imagenes"))
+	vehicleSvc := vehicle.NewService(vehicles, users, images)
 
 	accLog := openAccounting()
 	defer accLog.Close()
