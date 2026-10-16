@@ -1,9 +1,64 @@
 {{define "title"}}{{.Data.Marca}} {{.Data.Modelo}} {{.Data.Anio}}{{end}}
 {{define "content"}}
 {{with .Data}}
+{{$id := .ID}}{{$n := len .Imagenes}}{{$nombre := printf "%s %s" .Marca .Modelo}}
 <p class="migas"><a href="/">Volver al catálogo</a></p>
 <article class="detalle">
-  <div class="detalle-carro">
+  {{if .Imagenes}}
+  {{/* Carrusel sin JavaScript: cada foto tiene un radio oculto; las
+       miniaturas y las flechas son <label> que lo marcan, y el CSS muestra
+       la foto del radio marcado. Con el teclado se cambia con las flechas. */}}
+  <section class="galeria" id="galeria" aria-label="Fotos de {{$nombre}}">
+    {{range $i, $img := .Imagenes}}
+    <input class="galeria-radio" type="radio" name="foto" id="foto-{{$i}}" aria-label="Foto {{suma $i 1}} de {{$n}}"{{if eq $i 0}} checked{{end}}>
+    {{end}}
+    <div class="miniaturas">
+      {{range $i, $img := .Imagenes}}
+      <label for="foto-{{$i}}" class="miniatura miniatura-{{$i}}" title="Foto {{suma $i 1}}">
+        <img src="{{imagen $id $img}}" alt="" loading="lazy">
+      </label>
+      {{end}}
+    </div>
+    <div class="visor">
+      {{range $i, $img := .Imagenes}}
+      <figure class="diapo diapo-{{$i}}">
+        <a class="ampliar" href="#ampliada-{{$i}}" title="Ampliar">
+          <img src="{{imagen $id $img}}" alt="{{$nombre}}, foto {{suma $i 1}} de {{$n}}">
+        </a>
+        {{if gt $n 1}}
+        <label for="foto-{{anterior $i $n}}" class="flecha flecha-izq" title="Foto anterior"><span class="oculto">Foto anterior</span></label>
+        <label for="foto-{{siguiente $i $n}}" class="flecha flecha-der" title="Foto siguiente"><span class="oculto">Foto siguiente</span></label>
+        {{end}}
+        <figcaption>Foto {{suma $i 1}} de {{$n}}. Haz clic en la foto para ampliarla.</figcaption>
+      </figure>
+      {{end}}
+    </div>
+  </section>
+
+  {{/* Vista ampliada: se abre con #ampliada-N (:target). "Ampliar 2×" duplica
+       el tamaño y se recorre con el scroll o arrastrando en el celular. */}}
+  {{range $i, $img := .Imagenes}}
+  <div class="lupa" id="ampliada-{{$i}}" role="dialog" aria-label="Foto {{suma $i 1}} de {{$n}} ampliada">
+    <input class="zoom-ajustar" type="radio" name="zoom-{{$i}}" id="ajustar-{{$i}}" checked>
+    <input class="zoom-doble" type="radio" name="zoom-{{$i}}" id="doble-{{$i}}">
+    <div class="lupa-barra">
+      <span>Foto {{suma $i 1}} de {{$n}}</span>
+      <label for="ajustar-{{$i}}" class="lupa-opcion">Ajustar a la pantalla</label>
+      <label for="doble-{{$i}}" class="lupa-opcion">Ampliar 2×</label>
+      <a class="lupa-cerrar" href="#galeria">Cerrar</a>
+    </div>
+    <div class="lienzo">
+      <img src="{{imagen $id $img}}" alt="{{$nombre}}, foto {{suma $i 1}} de {{$n}}" loading="lazy">
+    </div>
+    {{if gt $n 1}}
+    <a class="flecha flecha-izq" href="#ampliada-{{anterior $i $n}}" title="Foto anterior"><span class="oculto">Foto anterior</span></a>
+    <a class="flecha flecha-der" href="#ampliada-{{siguiente $i $n}}" title="Foto siguiente"><span class="oculto">Foto siguiente</span></a>
+    {{end}}
+  </div>
+  {{end}}
+  {{end}}
+
+  <div class="detalle-info">
     <h1>{{.Marca}} {{.Modelo}}</h1>
     <p class="placa placa-precio placa-grande">{{pesos .Precio}}</p>
     <dl class="ficha ficha-grande">
@@ -11,15 +66,15 @@
       <div><dt>Recorrido</dt><dd>{{miles .Kilometraje}} km</dd></div>
       <div><dt>Publicado el</dt><dd>{{.CreadoEn.Format "02/01/2006"}}</dd></div>
     </dl>
+    <aside class="contacto" aria-labelledby="contacto-titulo">
+      <h2 id="contacto-titulo">Contacta al vendedor</h2>
+      <p class="contacto-nombre">{{.Vendedor.Nombre}}</p>
+      <ul>
+        <li><span>Teléfono</span><a href="{{tel .Vendedor.Telefono}}">{{.Vendedor.Telefono}}</a></li>
+        <li><span>Correo</span><a href="mailto:{{.Vendedor.Email}}">{{.Vendedor.Email}}</a></li>
+      </ul>
+    </aside>
   </div>
-  <aside class="contacto" aria-labelledby="contacto-titulo">
-    <h2 id="contacto-titulo">Contacta al vendedor</h2>
-    <p class="contacto-nombre">{{.Vendedor.Nombre}}</p>
-    <ul>
-      <li><span>Teléfono</span><a href="{{tel .Vendedor.Telefono}}">{{.Vendedor.Telefono}}</a></li>
-      <li><span>Correo</span><a href="mailto:{{.Vendedor.Email}}">{{.Vendedor.Email}}</a></li>
-    </ul>
-  </aside>
 </article>
 {{end}}
 {{end}}

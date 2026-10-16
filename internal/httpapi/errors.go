@@ -12,6 +12,7 @@ import (
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/apperr"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/imagestore"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/vehicle"
 )
@@ -31,10 +32,13 @@ func errorStatus(err error) (int, string) {
 		return http.StatusUnauthorized, err.Error()
 	case errors.Is(err, errForbidden), errors.Is(err, vehicle.ErrNotOwner):
 		return http.StatusForbidden, err.Error()
-	case errors.Is(err, vehicle.ErrNotFound), errors.Is(err, user.ErrNotFound):
+	case errors.Is(err, errTooLarge):
+		return http.StatusRequestEntityTooLarge, err.Error()
+	case errors.Is(err, vehicle.ErrNotFound), errors.Is(err, user.ErrNotFound), errors.Is(err, imagestore.ErrNotFound):
 		return http.StatusNotFound, err.Error()
 	case errors.Is(err, user.ErrEmailTaken), errors.Is(err, vehicle.ErrAlreadySold),
-		errors.Is(err, vehicle.ErrNotPending), errors.Is(err, admin.ErrSelfDelete):
+		errors.Is(err, vehicle.ErrNotPending), errors.Is(err, vehicle.ErrNotEditable),
+		errors.Is(err, admin.ErrSelfDelete):
 		return http.StatusConflict, err.Error()
 	default:
 		log.Printf("error interno: %v", err)

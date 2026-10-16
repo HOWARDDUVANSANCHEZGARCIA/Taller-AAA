@@ -2,13 +2,10 @@ package httpapi
 
 import (
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/admin"
-	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/apperr"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/auth"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/vehicle"
@@ -45,6 +42,9 @@ func RegisterWebRoutes(r gin.IRouter, s Services) {
 	seller.POST("/publicar", h.publish)
 	seller.GET("/mis-vehiculos", h.mine)
 	seller.POST("/mis-vehiculos/:id/vendido", h.reportSale)
+	seller.GET("/mis-vehiculos/:id/fotos", h.photos)
+	seller.POST("/mis-vehiculos/:id/fotos", h.addPhotos)
+	seller.POST("/mis-vehiculos/:id/fotos/:nombre/quitar", h.removePhoto)
 
 	panel := web.Group("/panel", h.pages.requireRole(user.RoleAdministrador))
 	panel.GET("", h.adminPanel)
@@ -61,6 +61,8 @@ var notices = map[string]string{
 	"aprobada":   "Publicación aprobada. Ya aparece en el catálogo.",
 	"eliminada":  "Publicación eliminada.",
 	"eliminado":  "Usuario eliminado junto con sus publicaciones.",
+	"agregadas":  "Fotos agregadas.",
+	"quitada":    "Foto quitada.",
 }
 
 func (h *WebHandler) catalog(c *gin.Context) {
@@ -128,22 +130,12 @@ func (h *WebHandler) register(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, "/ingresar?aviso=registrado")
 }
 
-// publishForm guarda lo escrito tal cual, para devolverlo si hay un error.
-type publishForm struct{ Marca, Modelo, Anio, Precio, Kilometraje string }
-
 func (h *WebHandler) publishForm(c *gin.Context) {
 	h.pages.render(c, http.StatusOK, "publicar", page{Data: publishForm{}})
 }
 
 func (h *WebHandler) publish(c *gin.Context) {
-	form := publishForm{
-		Marca:       c.PostForm("marca"),
-		Modelo:      c.PostForm("modelo"),
-		Anio:        c.PostForm("anio"),
-		Precio:      c.PostForm("precio"),
-		Kilometraje: c.PostForm("kilometraje"),
-	}
-	in, err := form.toInput()
+	form, in, err := readPublishForm(c)
 	if err == nil {
 		seller, _ := CurrentUser(c)
 		_, err = h.vehicles.Publish(seller.ID, in)
@@ -173,6 +165,55 @@ func (h *WebHandler) reportSale(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusSeeOther, "/mis-vehiculos?aviso=vendido")
+}
+
+// photosData es lo que muestra la página para cambiar las fotos.
+type photosData struct {
+	Vehicle  vehicle.Vehicle
+	Editable bool // sigue pendiente
+	Max      int
+}
+
+func (h *WebHandler) photos(c *gin.Context) {
+	h.renderPhotos(c, http.StatusOK, "")
+}
+
+func (h *WebHandler) renderPhotos(c *gin.Context, status int, errMsg string) {
+	seller, _ := CurrentUser(c)
+	v, err := h.vehicles.Own(seller.ID, c.Param("id"))
+	if err != nil {
+		h.pages.renderError(c, err)
+		return
+	}
+	h.pages.render(c, status, "fotos", page{
+		Error:  errMsg,
+		Notice: notices[c.Query("aviso")],
+		Data:   photosData{Vehicle: v, Editable: v.Estado == vehicle.StatusPendiente, Max: vehicle.MaxImages},
+	})
+}
+
+func (h *WebHandler) addPhotos(c *gin.Context) {
+	images, err := readImages(c)
+	if err == nil {
+		seller, _ := CurrentUser(c)
+		_, err = h.vehicles.AddImages(seller.ID, c.Param("id"), images)
+	}
+	if err != nil {
+		status, msg := errorStatus(err)
+		h.renderPhotos(c, status, msg)
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/mis-vehiculos/"+c.Param("id")+"/fotos?aviso=agregadas")
+}
+
+func (h *WebHandler) removePhoto(c *gin.Context) {
+	seller, _ := CurrentUser(c)
+	if _, err := h.vehicles.RemoveImage(seller.ID, c.Param("id"), c.Param("nombre")); err != nil {
+		status, msg := errorStatus(err)
+		h.renderPhotos(c, status, msg)
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/mis-vehiculos/"+c.Param("id")+"/fotos?aviso=quitada")
 }
 
 // adminPanelData es lo que muestra el panel del administrador.
@@ -223,28 +264,4 @@ func (h *WebHandler) adminDeleteUser(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusSeeOther, "/panel?aviso=eliminado")
-}
-
-// toInput convierte los textos del formulario en números. Acepta puntos y
-// espacios como separadores de miles ("78.000.000").
-func (f publishForm) toInput() (vehicle.PublishInput, error) {
-	anio, err := strconv.Atoi(strings.TrimSpace(f.Anio))
-	if err != nil {
-		return vehicle.PublishInput{}, &apperr.ValidationError{Msg: "el año debe ser un número, por ejemplo 2019"}
-	}
-	precio, err := strconv.ParseInt(stripThousands(f.Precio), 10, 64)
-	if err != nil {
-		return vehicle.PublishInput{}, &apperr.ValidationError{Msg: "el precio debe ser un número entero de pesos, por ejemplo 78.000.000"}
-	}
-	km, err := strconv.Atoi(stripThousands(f.Kilometraje))
-	if err != nil {
-		return vehicle.PublishInput{}, &apperr.ValidationError{Msg: "el kilometraje debe ser un número entero, por ejemplo 60.000"}
-	}
-	return vehicle.PublishInput{Marca: f.Marca, Modelo: f.Modelo, Anio: anio, Precio: precio, Kilometraje: km}, nil
-}
-
-// stripThousands quita los separadores de miles; cualquier otro carácter se deja
-// para que strconv lo rechace.
-func stripThousands(s string) string {
-	return strings.NewReplacer(".", "", " ", "").Replace(strings.TrimSpace(s))
 }

@@ -174,10 +174,36 @@ a:hover { text-decoration-thickness: 2px; }
   background: var(--superficie);
   border: 1px solid var(--linea);
   border-radius: var(--borde);
-  padding: 1.25rem;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+.carro-cuerpo {
+  padding: 1.25rem;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   align-items: flex-start;
+}
+
+/* Portada de la tarjeta: la primera foto, recortada a 4:3. */
+.portada {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: #d5d9dd;
+}
+.portada img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.contador {
+  position: absolute;
+  right: .6rem;
+  bottom: .6rem;
+  background: rgb(36 40 44 / .85);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 600;
+  padding: .15rem .55rem;
+  border-radius: 999px;
 }
 .carro h2 { font-size: 1.6rem; }
 .carro h2 a { text-decoration: none; }
@@ -207,7 +233,8 @@ a:hover { text-decoration-thickness: 2px; }
   gap: 2rem;
   align-items: start;
 }
-.detalle-carro h1 { margin-bottom: 1rem; }
+.detalle-info h1 { margin-bottom: 1rem; }
+.detalle-info .contacto { margin-top: 1.5rem; }
 
 .contacto {
   background: var(--superficie);
@@ -360,3 +387,217 @@ a:hover { text-decoration-thickness: 2px; }
 @media (max-width: 720px) {
   .acciones { justify-content: flex-start; }
 }
+
+/* ---------- Galería del detalle (solo HTML y CSS) ----------
+   Hay un radio oculto por foto (#foto-0 … #foto-7). El radio marcado decide
+   qué diapositiva se ve y qué miniatura se resalta. */
+
+.galeria {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: .75rem;
+  align-items: start;
+}
+.galeria-radio { position: absolute; opacity: 0; pointer-events: none; }
+
+.miniaturas { display: flex; flex-direction: column; gap: .5rem; }
+.miniatura {
+  display: block;
+  aspect-ratio: 1;
+  border: 2px solid var(--linea);
+  border-radius: var(--borde);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--superficie);
+}
+.miniatura img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.miniatura:hover { border-color: var(--grafito); }
+
+.visor { position: relative; }
+.diapo { display: none; margin: 0; position: relative; }
+.diapo .ampliar {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: var(--borde);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.diapo .ampliar img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.diapo figcaption { color: var(--grafito); font-size: .85rem; margin-top: .4rem; }
+
+#foto-0:checked ~ .visor .diapo-0,
+#foto-1:checked ~ .visor .diapo-1,
+#foto-2:checked ~ .visor .diapo-2,
+#foto-3:checked ~ .visor .diapo-3,
+#foto-4:checked ~ .visor .diapo-4,
+#foto-5:checked ~ .visor .diapo-5,
+#foto-6:checked ~ .visor .diapo-6,
+#foto-7:checked ~ .visor .diapo-7 { display: block; }
+
+#foto-0:checked ~ .miniaturas .miniatura-0,
+#foto-1:checked ~ .miniaturas .miniatura-1,
+#foto-2:checked ~ .miniaturas .miniatura-2,
+#foto-3:checked ~ .miniaturas .miniatura-3,
+#foto-4:checked ~ .miniaturas .miniatura-4,
+#foto-5:checked ~ .miniaturas .miniatura-5,
+#foto-6:checked ~ .miniaturas .miniatura-6,
+#foto-7:checked ~ .miniaturas .miniatura-7 { border-color: var(--foco); box-shadow: 0 0 0 1px var(--foco); }
+
+/* Foco del teclado: el radio está oculto, así que se marca la miniatura. */
+#foto-0:focus-visible ~ .miniaturas .miniatura-0,
+#foto-1:focus-visible ~ .miniaturas .miniatura-1,
+#foto-2:focus-visible ~ .miniaturas .miniatura-2,
+#foto-3:focus-visible ~ .miniaturas .miniatura-3,
+#foto-4:focus-visible ~ .miniaturas .miniatura-4,
+#foto-5:focus-visible ~ .miniaturas .miniatura-5,
+#foto-6:focus-visible ~ .miniaturas .miniatura-6,
+#foto-7:focus-visible ~ .miniaturas .miniatura-7 { outline: 3px solid var(--foco); outline-offset: 2px; }
+
+/* Flechas: círculos sobre la foto. El símbolo se dibuja con un borde girado. */
+.flecha {
+  position: absolute;
+  top: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-top: -1.375rem;
+  border-radius: 50%;
+  background: rgb(255 255 255 / .92);
+  border: 1px solid var(--linea);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.diapo .flecha { margin-top: -2.4rem; }
+.flecha::before {
+  content: "";
+  width: .7rem;
+  height: .7rem;
+  border: solid var(--asfalto);
+  border-width: 0 3px 3px 0;
+}
+.flecha-izq { left: .75rem; }
+.flecha-der { right: .75rem; }
+.flecha-izq::before { transform: translateX(2px) rotate(135deg); }
+.flecha-der::before { transform: translateX(-2px) rotate(-45deg); }
+.flecha:hover { background: #fff; border-color: var(--asfalto); }
+
+/* ---------- Vista ampliada ---------- */
+
+.lupa {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #141618;
+  color: #fff;
+  flex-direction: column;
+}
+.lupa:target { display: flex; }
+
+.lupa-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem 1rem;
+  padding: .75rem clamp(1rem, 3vw, 2rem);
+}
+.lupa-barra span { margin-right: auto; color: #c9ced3; }
+.lupa-opcion {
+  border: 1px solid #5b6168;
+  border-radius: var(--borde);
+  padding: .35rem .8rem;
+  cursor: pointer;
+}
+.lupa-cerrar {
+  color: var(--placa-tinta);
+  background: var(--placa);
+  border-radius: var(--borde);
+  padding: .35rem .9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.zoom-ajustar, .zoom-doble { position: absolute; opacity: 0; pointer-events: none; }
+.zoom-ajustar:checked ~ .lupa-barra .lupa-opcion[for^="ajustar"],
+.zoom-doble:checked ~ .lupa-barra .lupa-opcion[for^="doble"] { background: #fff; color: var(--asfalto); border-color: #fff; }
+.zoom-ajustar:focus-visible ~ .lupa-barra .lupa-opcion[for^="ajustar"],
+.zoom-doble:focus-visible ~ .lupa-barra .lupa-opcion[for^="doble"] { outline: 3px solid var(--placa); outline-offset: 2px; }
+
+.lienzo {
+  flex: 1;
+  min-height: 0; /* sin esto, en una columna flex la foto ampliada se sale por arriba */
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 0 clamp(1rem, 6vw, 5rem) 1rem;
+}
+.lienzo img { max-width: 100%; max-height: calc(100vh - 6rem); object-fit: contain; }
+.zoom-doble:checked ~ .lienzo { place-items: start; }
+.zoom-doble:checked ~ .lienzo img { max-width: none; max-height: none; width: 200%; cursor: zoom-out; }
+.lupa .flecha { top: 50%; }
+
+/* ---------- Fotos en tablas ---------- */
+
+.con-foto { display: flex; align-items: center; gap: .75rem; }
+.foto-mini {
+  width: 4.5rem;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--borde);
+  border: 1px solid var(--linea);
+  flex: none;
+}
+.con-foto small { color: var(--grafito); }
+
+.tira { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem; }
+.tira img {
+  width: 3.5rem;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--linea);
+  display: block;
+}
+.tira a:hover img { border-color: var(--asfalto); }
+
+.formulario input[type="file"] { padding: .5rem; background: var(--superficie); }
+
+@media (max-width: 720px) {
+  .galeria { grid-template-columns: 1fr; }
+  .miniaturas { flex-direction: row; order: 2; overflow-x: auto; }
+  .miniatura { width: 4rem; flex: none; }
+  .zoom-doble:checked ~ .lienzo img { width: 300%; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .diapo .ampliar img { transition: transform .2s ease; }
+  .diapo .ampliar:hover img { transform: scale(1.03); }
+}
+
+/* ---------- Cambiar fotos ---------- */
+
+.fotos-edicion {
+  list-style: none;
+  margin: 0 0 2.5rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 1rem;
+}
+.fotos-edicion li {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: var(--borde);
+  overflow: hidden;
+}
+.fotos-edicion img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.fotos-pie {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .5rem .75rem;
+  font-size: .9rem;
+}
+.fotos-pie form { margin: 0; }
+.tabla .acciones form { margin: 0; }

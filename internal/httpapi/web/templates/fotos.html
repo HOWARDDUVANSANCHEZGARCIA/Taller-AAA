@@ -1,0 +1,42 @@
+{{define "title"}}Fotos de {{.Data.Vehicle.Marca}} {{.Data.Vehicle.Modelo}}{{end}}
+{{define "content"}}
+{{$v := .Data.Vehicle}}{{$n := len $v.Imagenes}}
+<p class="migas"><a href="/mis-vehiculos">Volver a mis vehículos</a></p>
+<section class="encabezado">
+  <h1>Fotos de {{$v.Marca}} {{$v.Modelo}}</h1>
+  {{if .Data.Editable}}
+  <p>Puedes agregar o quitar fotos hasta que un administrador apruebe la publicación. La primera es la portada.</p>
+  {{else}}
+  <p>Esta publicación ya fue revisada: sus fotos no se pueden cambiar.</p>
+  {{end}}
+</section>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+
+<ul class="fotos-edicion">
+  {{range $i, $img := $v.Imagenes}}
+  <li>
+    <img src="{{imagen $v.ID $img}}" alt="Foto {{suma $i 1}} de {{$n}}" loading="lazy">
+    <div class="fotos-pie">
+      <span>{{if eq $i 0}}Portada{{else}}Foto {{suma $i 1}}{{end}}</span>
+      {{if and $.Data.Editable (gt $n 1)}}
+      <form method="post" action="/mis-vehiculos/{{$v.ID}}/fotos/{{$img}}/quitar">
+        <button class="enlace" type="submit">Quitar</button>
+      </form>
+      {{end}}
+    </div>
+  </li>
+  {{end}}
+</ul>
+
+{{if and .Data.Editable (lt $n .Data.Max)}}
+<section class="formulario">
+  <h2>Agregar fotos</h2>
+  <form method="post" action="/mis-vehiculos/{{$v.ID}}/fotos" enctype="multipart/form-data">
+    <label for="imagenes">Fotos nuevas</label>
+    <input id="imagenes" name="imagenes" type="file" accept="image/jpeg,image/png" multiple required aria-describedby="imagenes-ayuda">
+    <small id="imagenes-ayuda">JPG o PNG, máximo 5 MB cada una. Tiene {{$n}} de {{.Data.Max}} fotos.</small>
+    <button class="boton" type="submit">Agregar fotos</button>
+  </form>
+</section>
+{{end}}
+{{end}}

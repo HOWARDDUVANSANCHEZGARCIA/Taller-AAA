@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/testimg"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/vehicle"
 )
@@ -109,7 +110,7 @@ func TestWebSellerPagesRequireSellerRole(t *testing.T) {
 	}
 
 	forged := &http.Cookie{Name: sessionCookie, Value: "token-falso"}
-	w := postForm(app, "/publicar", url.Values{"marca": {"Kia"}}, forged)
+	w := postPublish(app, url.Values{"marca": {"Kia"}}, forged)
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("cookie falsa: status %d; quería redirección a ingresar", w.Code)
 	}
@@ -123,7 +124,7 @@ func TestWebPublishAndReportSale(t *testing.T) {
 	ana := app.webSession(t, "ana", user.RoleVendedor)
 	beto := app.webSession(t, "beto", user.RoleVendedor)
 
-	w := postForm(app, "/publicar", url.Values{
+	w := postPublish(app, url.Values{
 		"marca": {"Renault"}, "modelo": {"Koleos"}, "anio": {"2019"}, "precio": {"78.000.000"}, "kilometraje": {"60 000"},
 	}, ana)
 	if w.Code != http.StatusSeeOther {
@@ -155,7 +156,7 @@ func TestWebPublishShowsValidationErrors(t *testing.T) {
 		"precio negativo": {"marca": {"Kia"}, "modelo": {"Picanto"}, "anio": {"2019"}, "precio": {"-5"}, "kilometraje": {"1"}},
 		"sin marca":       {"marca": {""}, "modelo": {"Picanto"}, "anio": {"2019"}, "precio": {"1"}, "kilometraje": {"1"}},
 	} {
-		w := postForm(app, "/publicar", form, ana)
+		w := postPublish(app, form, ana)
 		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), `class="error"`) {
 			t.Errorf("%s: status %d; quería 400 con mensaje", name, w.Code)
 		}
@@ -165,8 +166,9 @@ func TestWebPublishShowsValidationErrors(t *testing.T) {
 func TestWebCatalogEscapesUserContent(t *testing.T) {
 	app := newTestApp(t)
 	app.addUser(t, "ana", user.RoleVendedor)
-	v, err := vehicle.NewService(app.vehicles, app.users).Publish("ana", vehicle.PublishInput{
+	v, err := app.vehicleSvc.Publish("ana", vehicle.PublishInput{
 		Marca: "<script>alert(1)</script>", Modelo: "X", Anio: 2020, Precio: 1, Kilometraje: 0,
+		Imagenes: [][]byte{testimg.PNG()},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -190,8 +192,8 @@ func TestWebCatalogEscapesUserContent(t *testing.T) {
 func TestWebCatalogHidesPendingVehicle(t *testing.T) {
 	app := newTestApp(t)
 	app.addUser(t, "ana", user.RoleVendedor)
-	v, _ := vehicle.NewService(app.vehicles, app.users).Publish("ana", vehicle.PublishInput{
-		Marca: "Pendiente", Modelo: "X", Anio: 2020, Precio: 1,
+	v, _ := app.vehicleSvc.Publish("ana", vehicle.PublishInput{
+		Marca: "Pendiente", Modelo: "X", Anio: 2020, Precio: 1, Imagenes: [][]byte{testimg.PNG()},
 	})
 
 	if strings.Contains(getPage(app, "/", nil).Body.String(), "Pendiente X") {
@@ -235,7 +237,7 @@ func TestWebAdminPanel(t *testing.T) {
 	app := newTestApp(t)
 	ana := app.webSession(t, "ana", user.RoleVendedor)
 	admin := app.webSession(t, "admin", user.RoleAdministrador)
-	postForm(app, "/publicar", url.Values{
+	postPublish(app, url.Values{
 		"marca": {"Renault"}, "modelo": {"Koleos"}, "anio": {"2019"}, "precio": {"78000000"}, "kilometraje": {"60000"},
 	}, ana)
 	all, _ := app.vehicles.List()
@@ -272,5 +274,103 @@ func TestWebAdminPanel(t *testing.T) {
 	}
 	if w := getPage(app, "/mis-vehiculos", ana); w.Code != http.StatusSeeOther {
 		t.Errorf("la sesión del usuario eliminado no debe servir: status %d", w.Code)
+	}
+}
+
+func TestWebPublishRequiresPhotos(t *testing.T) {
+	app := newTestApp(t)
+	ana := app.webSession(t, "ana", user.RoleVendedor)
+
+	w := sendMultipart(app.router, "/publicar", standardFields(), nil, "", ana)
+	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "entre 1 y 8 fotos") {
+		t.Errorf("sin fotos: status %d; quería 400 con el mensaje de las fotos", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), `value="Renault"`) {
+		t.Error("debe conservar lo escrito en el formulario")
+	}
+}
+
+func TestWebDetailShowsGallery(t *testing.T) {
+	app := newTestApp(t)
+	app.addUser(t, "ana", user.RoleVendedor)
+	v, err := app.vehicleSvc.Publish("ana", vehicle.PublishInput{
+		Marca: "Mazda", Modelo: "CX-30", Anio: 2021, Precio: 1,
+		Imagenes: [][]byte{testimg.PNG(), testimg.PNG(), testimg.PNG()},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.approve(t, v.ID)
+
+	body := getPage(app, "/catalogo/"+v.ID, nil).Body.String()
+	for _, name := range v.Imagenes {
+		if !strings.Contains(body, imageURL(v.ID, name)) {
+			t.Errorf("el detalle debe mostrar la foto %s", name)
+		}
+	}
+	if strings.Count(body, `name="foto"`) != 3 || !strings.Contains(body, `id="ampliada-2"`) {
+		t.Error("el detalle debe tener el carrusel con 3 fotos y la vista ampliada")
+	}
+	if !strings.Contains(getPage(app, "/", nil).Body.String(), imageURL(v.ID, v.Imagenes[0])) {
+		t.Error("el catálogo debe mostrar la portada")
+	}
+}
+
+// La página usa la cookie de sesión: el dueño ve las fotos de su publicación
+// pendiente desde "Mis vehículos"; un visitante no.
+func TestWebPendingPhotosVisibleToOwnerOnly(t *testing.T) {
+	app := newTestApp(t)
+	ana := app.webSession(t, "ana", user.RoleVendedor)
+	postPublish(app, url.Values{"marca": {"Kia"}, "modelo": {"Picanto"}, "anio": {"2020"}, "precio": {"1"}, "kilometraje": {"1"}}, ana)
+	all, _ := app.vehicles.List()
+	img := imageURL(all[0].ID, all[0].Imagenes[0])
+
+	if !strings.Contains(getPage(app, "/mis-vehiculos", ana).Body.String(), img) {
+		t.Error("mis vehículos debe mostrar la foto")
+	}
+	if w := getPage(app, img, ana); w.Code != http.StatusOK {
+		t.Errorf("dueño con cookie: status %d", w.Code)
+	}
+	if w := getPage(app, img, nil); w.Code != http.StatusNotFound {
+		t.Errorf("visitante: status %d; quería 404", w.Code)
+	}
+}
+
+func TestWebChangePhotos(t *testing.T) {
+	app := newTestApp(t)
+	ana := app.webSession(t, "ana", user.RoleVendedor)
+	beto := app.webSession(t, "beto", user.RoleVendedor)
+	postPublish(app, url.Values{"marca": {"Kia"}, "modelo": {"Picanto"}, "anio": {"2020"}, "precio": {"1"}, "kilometraje": {"1"}}, ana)
+	all, _ := app.vehicles.List()
+	id := all[0].ID
+	page := "/mis-vehiculos/" + id + "/fotos"
+
+	if !strings.Contains(getPage(app, "/mis-vehiculos", ana).Body.String(), page) {
+		t.Error("mis vehículos debe enlazar a cambiar fotos mientras está pendiente")
+	}
+	if w := getPage(app, page, beto); w.Code != http.StatusForbidden {
+		t.Errorf("otro vendedor: status %d; quería 403", w.Code)
+	}
+	if w := sendMultipart(app.router, page, nil, [][]byte{testimg.PNG(), testimg.PNG()}, "", ana); w.Code != http.StatusSeeOther {
+		t.Fatalf("agregar: status %d, %s", w.Code, w.Body)
+	}
+	v, _ := app.vehicles.FindByID(id)
+	if len(v.Imagenes) != 3 {
+		t.Fatalf("fotos = %d; quería 3", len(v.Imagenes))
+	}
+	if w := postForm(app, page+"/"+v.Imagenes[0]+"/quitar", nil, ana); w.Code != http.StatusSeeOther {
+		t.Fatalf("quitar: status %d", w.Code)
+	}
+	if v, _ = app.vehicles.FindByID(id); len(v.Imagenes) != 2 {
+		t.Errorf("fotos = %d; quería 2", len(v.Imagenes))
+	}
+
+	app.approve(t, id)
+	body := getPage(app, page, ana).Body.String()
+	if strings.Contains(body, "Agregar fotos") || strings.Contains(body, "Quitar") {
+		t.Error("tras la aprobación la página no debe ofrecer cambios")
+	}
+	if w := sendMultipart(app.router, page, nil, [][]byte{testimg.PNG()}, "", ana); w.Code != http.StatusConflict {
+		t.Errorf("agregar tras aprobar: status %d; quería 409", w.Code)
 	}
 }

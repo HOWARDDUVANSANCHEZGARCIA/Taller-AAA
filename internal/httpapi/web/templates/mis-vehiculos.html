@@ -16,15 +16,25 @@
   <tbody>
     {{range .Data}}
     <tr>
-      <td data-titulo="Vehículo"><strong>{{.Marca}} {{.Modelo}}</strong> {{.Anio}}, {{miles .Kilometraje}} km</td>
+      <td data-titulo="Vehículo">
+        <div class="con-foto">
+          {{if .Imagenes}}<img class="foto-mini" src="{{imagen .ID (index .Imagenes 0)}}" alt="" loading="lazy">{{end}}
+          <span><strong>{{.Marca}} {{.Modelo}}</strong> {{.Anio}}, {{miles .Kilometraje}} km<br><small>{{fotos (len .Imagenes)}}</small></span>
+        </div>
+      </td>
       <td data-titulo="Precio">{{pesos .Precio}}</td>
       <td data-titulo="Estado"><span class="estado estado-{{.Estado}}">{{estado .Estado}}</span></td>
       <td>
-        {{if ne .Estado "vendida"}}
-        <form method="post" action="/mis-vehiculos/{{.ID}}/vendido">
-          <button class="boton boton-claro" type="submit">Reportar venta</button>
-        </form>
-        {{end}}
+        <div class="acciones">
+          {{if eq .Estado "pendiente"}}
+          <a class="boton boton-claro" href="/mis-vehiculos/{{.ID}}/fotos">Cambiar fotos</a>
+          {{end}}
+          {{if ne .Estado "vendida"}}
+          <form method="post" action="/mis-vehiculos/{{.ID}}/vendido">
+            <button class="boton boton-claro" type="submit">Reportar venta</button>
+          </form>
+          {{end}}
+        </div>
       </td>
     </tr>
     {{end}}

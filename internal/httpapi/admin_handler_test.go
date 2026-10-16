@@ -13,7 +13,7 @@ import (
 func TestAdminRoutesRequireAdministrator(t *testing.T) {
 	app := newTestApp(t)
 	seller := app.addUser(t, "ana", user.RoleVendedor)
-	v := decode[vehicleResponse](t, do(app.router, http.MethodPost, "/vehiculos", vehicleBody, seller).Body.Bytes())
+	v := decode[vehicleResponse](t, do(app.router, http.MethodPost, "/vehiculos", vehicleForm, seller).Body.Bytes())
 
 	routes := []struct{ method, path string }{
 		{http.MethodGet, "/admin/vehiculos"},
@@ -44,7 +44,7 @@ func TestAdminApprovesPendingVehicle(t *testing.T) {
 	app := newTestApp(t)
 	seller := app.addUser(t, "ana", user.RoleVendedor)
 	admin := app.addUser(t, "admin", user.RoleAdministrador)
-	v := decode[vehicleResponse](t, do(app.router, http.MethodPost, "/vehiculos", vehicleBody, seller).Body.Bytes())
+	v := decode[vehicleResponse](t, do(app.router, http.MethodPost, "/vehiculos", vehicleForm, seller).Body.Bytes())
 
 	list := decode[[]publicationResponse](t, do(app.router, http.MethodGet, "/admin/vehiculos", "", admin).Body.Bytes())
 	if len(list) != 1 || list[0].Estado != vehicle.StatusPendiente || list[0].Vendedor != "Usuario ana" {
@@ -70,7 +70,7 @@ func TestAdminDeletesPublication(t *testing.T) {
 	app := newTestApp(t)
 	seller := app.addUser(t, "ana", user.RoleVendedor)
 	admin := app.addUser(t, "admin", user.RoleAdministrador)
-	v := decode[vehicleResponse](t, do(app.router, http.MethodPost, "/vehiculos", vehicleBody, seller).Body.Bytes())
+	v := decode[vehicleResponse](t, do(app.router, http.MethodPost, "/vehiculos", vehicleForm, seller).Body.Bytes())
 	app.approve(t, v.ID)
 
 	if w := do(app.router, http.MethodDelete, "/admin/vehiculos/"+v.ID, "", admin); w.Code != http.StatusNoContent {
@@ -88,7 +88,7 @@ func TestAdminDeletesUserAndRevokesAccess(t *testing.T) {
 	app := newTestApp(t)
 	seller := app.addUser(t, "ana", user.RoleVendedor)
 	admin := app.addUser(t, "admin", user.RoleAdministrador)
-	v := decode[vehicleResponse](t, do(app.router, http.MethodPost, "/vehiculos", vehicleBody, seller).Body.Bytes())
+	v := decode[vehicleResponse](t, do(app.router, http.MethodPost, "/vehiculos", vehicleForm, seller).Body.Bytes())
 
 	if w := do(app.router, http.MethodDelete, "/admin/usuarios/ana", "", admin); w.Code != http.StatusNoContent {
 		t.Fatalf("eliminar usuario: status %d, %s", w.Code, w.Body)
@@ -96,7 +96,7 @@ func TestAdminDeletesUserAndRevokesAccess(t *testing.T) {
 	if _, err := app.vehicles.FindByID(v.ID); err == nil {
 		t.Error("las publicaciones del usuario también deben eliminarse")
 	}
-	if w := do(app.router, http.MethodPost, "/vehiculos", vehicleBody, seller); w.Code != http.StatusUnauthorized {
+	if w := do(app.router, http.MethodPost, "/vehiculos", vehicleForm, seller); w.Code != http.StatusUnauthorized {
 		t.Errorf("el token del usuario eliminado debe dejar de servir: status %d", w.Code)
 	}
 	users := decode[[]adminUserResponse](t, do(app.router, http.MethodGet, "/admin/usuarios", "", admin).Body.Bytes())

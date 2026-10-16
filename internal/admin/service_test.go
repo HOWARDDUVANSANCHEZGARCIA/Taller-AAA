@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/imagestore"
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/testimg"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/vehicle"
 )
@@ -14,7 +16,7 @@ func newTestService(t *testing.T) (*Service, *user.FileRepository, *vehicle.Serv
 	dir := t.TempDir()
 	users, _ := user.NewFileRepository(filepath.Join(dir, "users.json"))
 	repo, _ := vehicle.NewFileRepository(filepath.Join(dir, "vehicles.json"))
-	vehicles := vehicle.NewService(repo, users)
+	vehicles := vehicle.NewService(repo, users, imagestore.New(filepath.Join(dir, "imagenes")))
 	for _, u := range []user.User{
 		{ID: "admin", Nombre: "Admin", Email: "admin@x.com", Rol: user.RoleAdministrador},
 		{ID: "ana", Nombre: "Ana", Email: "ana@x.com", Rol: user.RoleVendedor},
@@ -29,7 +31,9 @@ func newTestService(t *testing.T) (*Service, *user.FileRepository, *vehicle.Serv
 
 func publish(t *testing.T, vehicles *vehicle.Service, seller string) vehicle.Vehicle {
 	t.Helper()
-	v, err := vehicles.Publish(seller, vehicle.PublishInput{Marca: "Kia", Modelo: "Picanto", Anio: 2020, Precio: 1})
+	v, err := vehicles.Publish(seller, vehicle.PublishInput{
+		Marca: "Kia", Modelo: "Picanto", Anio: 2020, Precio: 1, Imagenes: [][]byte{testimg.PNG()},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

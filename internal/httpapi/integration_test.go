@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/accounting"
+	"github.com/HOWARDDUVANSANCHEZGARCIA/taller-aaa/internal/user"
 )
 
 func readAccounting(t *testing.T, path string) []accounting.Entry {
@@ -72,10 +73,10 @@ func TestAAAEndToEnd(t *testing.T) {
 			ana = login(t, app, "ana@correo.com", "clave-segura-1")
 			u, _ := app.users.FindByEmail("ana@correo.com")
 			anaID = u.ID
-			return step{"visitante intenta publicar", "POST", "/vehiculos", vehicleBody, "", 401, "", "visitante"}
+			return step{"visitante intenta publicar", "POST", "/vehiculos", vehicleForm, "", 401, "", "visitante"}
 		},
 		func() step {
-			return step{"Ana publica", "POST", "/vehiculos", vehicleBody, ana, 201, anaID, "vendedor"}
+			return step{"Ana publica", "POST", "/vehiculos", vehicleForm, ana, 201, anaID, "vendedor"}
 		},
 		func() step {
 			all, _ := app.vehicles.List()
@@ -99,7 +100,7 @@ func TestAAAEndToEnd(t *testing.T) {
 			return step{"administrador elimina a Ana", "DELETE", "/admin/usuarios/" + anaID, "", admin, 204, adminUser.ID, "administrador"}
 		},
 		func() step {
-			return step{"el token de Ana ya no sirve", "POST", "/vehiculos", vehicleBody, ana, 401, "", "visitante"}
+			return step{"el token de Ana ya no sirve", "POST", "/vehiculos", vehicleForm, ana, 401, "", "visitante"}
 		},
 	}
 
@@ -187,5 +188,23 @@ func TestAccountingIgnoresForwardedFor(t *testing.T) {
 
 	if e := readAccounting(t, app.logPath); len(e) != 1 || e[0].IP != "10.0.0.7" {
 		t.Errorf("IP registrada = %+v; quería la de la conexión", e)
+	}
+}
+
+// Ver una foto también es una operación sobre un recurso: queda registrada.
+func TestAccountingRecordsImageViews(t *testing.T) {
+	app := newTestApp(t)
+	owner := app.addUser(t, "ana", user.RoleVendedor)
+	v := decode[vehicleResponse](t, do(app.router, http.MethodPost, "/vehiculos", vehicleForm, owner).Body.Bytes())
+	do(app.router, http.MethodGet, v.Imagenes[0], "", "")
+	do(app.router, http.MethodGet, v.Imagenes[0], "", owner)
+
+	entries := readAccounting(t, app.logPath)
+	last := entries[len(entries)-2:]
+	if last[0].Operacion != "GET /vehiculos/:id/imagenes/:nombre" || last[0].Resultado != 404 || last[0].Actor != "anonimo" {
+		t.Errorf("visitante viendo foto pendiente: %+v", last[0])
+	}
+	if last[1].Resultado != 200 || last[1].Actor != "ana" || last[1].Recurso != v.Imagenes[0] {
+		t.Errorf("dueño viendo su foto: %+v", last[1])
 	}
 }
