@@ -54,7 +54,7 @@ Para empezar de cero, borre la carpeta `data/`.
    - **Cambiar fotos:** en "Mis vehículos", "Cambiar fotos" para agregar o quitar mientras está pendiente.
 4. **Autorización:** con la sesión del vendedor, abrir `/panel`: responde *Tu cuenta no tiene permiso para esto* (403).
 5. **Administrador:** salir, ingresar con `ADMIN_EMAIL`, abrir "Panel de administración", revisar las fotos y aprobar. Ahora aparece en el catálogo con sus fotos y el contacto del vendedor, y el vendedor ya no puede cambiar las fotos.
-   - **Galería:** en el detalle, pasar fotos con las flechas o las miniaturas, hacer clic para ampliar y usar "Ampliar 2×".
+   - **Galería:** en el detalle, pasar fotos con las flechas o las miniaturas, hacer clic para verla a pantalla completa.
 6. **Venta:** volver como vendedor y "Reportar venta". Sale del catálogo.
 7. **Eliminar usuario:** como administrador, eliminar al vendedor. Su sesión deja de servir.
 8. **Accounting:** abrir `data/accounting.log`. Cada línea muestra operación, recurso, actor, rol, resultado, IP y momento.

@@ -186,14 +186,23 @@ a:hover { text-decoration-thickness: 2px; }
   align-items: flex-start;
 }
 
-/* Portada de la tarjeta: la primera foto, recortada a 4:3. */
+/* Portada de la tarjeta: alto fijo para que todas las tarjetas queden
+   iguales. La foto se muestra completa (contain), sin recortarla ni
+   deformarla, centrada sobre un fondo neutro. Va en posición absoluta para
+   que una foto vertical no estire el recuadro. */
 .portada {
   position: relative;
   display: block;
-  aspect-ratio: 4 / 3;
-  background: #d5d9dd;
+  height: 13rem;
+  background: #e3e6e9;
 }
-.portada img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.portada img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .contador {
   position: absolute;
   right: .6rem;
@@ -410,7 +419,8 @@ a:hover { text-decoration-thickness: 2px; }
   cursor: pointer;
   background: var(--superficie);
 }
-.miniatura img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.miniatura { position: relative; }
+.miniatura img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .miniatura:hover { border-color: var(--grafito); }
 
 .visor { position: relative; }
@@ -424,7 +434,8 @@ a:hover { text-decoration-thickness: 2px; }
   overflow: hidden;
   cursor: zoom-in;
 }
-.diapo .ampliar img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.diapo .ampliar { position: relative; }
+.diapo .ampliar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .diapo figcaption { color: var(--grafito); font-size: .85rem; margin-top: .4rem; }
 
 #foto-0:checked ~ .visor .diapo-0,
@@ -504,12 +515,6 @@ a:hover { text-decoration-thickness: 2px; }
   padding: .75rem clamp(1rem, 3vw, 2rem);
 }
 .lupa-barra span { margin-right: auto; color: #c9ced3; }
-.lupa-opcion {
-  border: 1px solid #5b6168;
-  border-radius: var(--borde);
-  padding: .35rem .8rem;
-  cursor: pointer;
-}
 .lupa-cerrar {
   color: var(--placa-tinta);
   background: var(--placa);
@@ -518,23 +523,15 @@ a:hover { text-decoration-thickness: 2px; }
   font-weight: 700;
   text-decoration: none;
 }
-.zoom-ajustar, .zoom-doble { position: absolute; opacity: 0; pointer-events: none; }
-.zoom-ajustar:checked ~ .lupa-barra .lupa-opcion[for^="ajustar"],
-.zoom-doble:checked ~ .lupa-barra .lupa-opcion[for^="doble"] { background: #fff; color: var(--asfalto); border-color: #fff; }
-.zoom-ajustar:focus-visible ~ .lupa-barra .lupa-opcion[for^="ajustar"],
-.zoom-doble:focus-visible ~ .lupa-barra .lupa-opcion[for^="doble"] { outline: 3px solid var(--placa); outline-offset: 2px; }
-
 .lienzo {
   flex: 1;
-  min-height: 0; /* sin esto, en una columna flex la foto ampliada se sale por arriba */
-  overflow: auto;
+  min-height: 0; /* sin esto, en una columna flex la foto se sale por arriba */
+  overflow: hidden;
   display: grid;
   place-items: center;
   padding: 0 clamp(1rem, 6vw, 5rem) 1rem;
 }
 .lienzo img { max-width: 100%; max-height: calc(100vh - 6rem); object-fit: contain; }
-.zoom-doble:checked ~ .lienzo { place-items: start; }
-.zoom-doble:checked ~ .lienzo img { max-width: none; max-height: none; width: 200%; cursor: zoom-out; }
 .lupa .flecha { top: 50%; }
 
 /* ---------- Fotos en tablas ---------- */
@@ -567,7 +564,6 @@ a:hover { text-decoration-thickness: 2px; }
   .galeria { grid-template-columns: 1fr; }
   .miniaturas { flex-direction: row; order: 2; overflow-x: auto; }
   .miniatura { width: 4rem; flex: none; }
-  .zoom-doble:checked ~ .lienzo img { width: 300%; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

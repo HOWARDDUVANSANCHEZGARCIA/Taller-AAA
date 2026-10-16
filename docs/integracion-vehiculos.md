@@ -118,9 +118,12 @@ forma `{"error":"mensaje"}`.
 - Datos del vehículo: marca, modelo, año, precio (pesos, entero), kilometraje y de 1 a 8 fotos.
 - Galería del detalle sin JavaScript: un radio oculto por foto; miniaturas y
   flechas son `<label>` que lo marcan, y el CSS muestra la foto marcada. La
-  vista ampliada se abre con `#ampliada-N` (`:target`) y ofrece "Ajustar a la
-  pantalla" y "Ampliar 2×" (otro par de radios). Con el teclado, las flechas
+  vista ampliada se abre con `#ampliada-N` (`:target`) y muestra la foto
+  completa a pantalla completa, con flechas. Con el teclado, las flechas
   cambian de foto.
+- Portadas del catálogo con alto fijo y `object-fit: contain`: todas las
+  tarjetas miden lo mismo y la foto se ve completa, sin recortes ni pérdida de
+  calidad.
 - `jsonfile` comparte la carga y la escritura atómica con el repositorio de
   usuarios; `ids` comparte el generador de IDs aleatorios (no se pueden
   adivinar ni recorrer en orden).

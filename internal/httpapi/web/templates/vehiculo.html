@@ -35,16 +35,12 @@
     </div>
   </section>
 
-  {{/* Vista ampliada: se abre con #ampliada-N (:target). "Ampliar 2×" duplica
-       el tamaño y se recorre con el scroll o arrastrando en el celular. */}}
+  {{/* Vista ampliada: se abre con #ampliada-N (:target) y muestra la foto
+       completa a pantalla completa. */}}
   {{range $i, $img := .Imagenes}}
   <div class="lupa" id="ampliada-{{$i}}" role="dialog" aria-label="Foto {{suma $i 1}} de {{$n}} ampliada">
-    <input class="zoom-ajustar" type="radio" name="zoom-{{$i}}" id="ajustar-{{$i}}" checked>
-    <input class="zoom-doble" type="radio" name="zoom-{{$i}}" id="doble-{{$i}}">
     <div class="lupa-barra">
       <span>Foto {{suma $i 1}} de {{$n}}</span>
-      <label for="ajustar-{{$i}}" class="lupa-opcion">Ajustar a la pantalla</label>
-      <label for="doble-{{$i}}" class="lupa-opcion">Ampliar 2×</label>
       <a class="lupa-cerrar" href="#galeria">Cerrar</a>
     </div>
     <div class="lienzo">
