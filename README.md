@@ -7,12 +7,14 @@ API backend en Go (solo standard library + Gin) con el marco de seguridad AAA
 cmd/server/            punto de entrada
 internal/user/         modelo de usuario y persistencia
 internal/auth/         registro, login, hash de contraseñas y tokens
-internal/vehicle/      publicaciones, estados y catálogo
+internal/vehicle/      publicaciones, estados, fotos y catálogo
+internal/imagestore/   fotos en disco: validación JPG/PNG, nombres aleatorios
 internal/admin/        moderación de publicaciones y usuarios
 internal/accounting/   registro de operaciones encadenado con HMAC
 internal/jsonfile/     carga y escritura atómica de archivos JSON
 internal/apperr/       errores comunes (validación)
 internal/ids/          identificadores aleatorios
+internal/testimg/      imágenes pequeñas para las pruebas
 internal/httpapi/      rutas, handlers y middleware (Gin): API JSON y páginas web
 internal/httpapi/web/  plantillas HTML y CSS (embebidos en el ejecutable)
 docs/                  guías de integración
