@@ -3,6 +3,7 @@ package jsonfile
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -26,7 +27,9 @@ func TestSaveThenLoad(t *testing.T) {
 	if _, err := os.Stat(path + ".tmp"); !os.IsNotExist(err) {
 		t.Error("no debe quedar el archivo temporal")
 	}
-	if info, _ := os.Stat(path); info.Mode().Perm() != 0o600 {
+	// Windows no maneja permisos tipo Unix (siempre reporta rw-rw-rw-), así
+	// que esta comprobación solo aplica en Linux y macOS.
+	if info, _ := os.Stat(path); runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Errorf("permisos = %v; quería 0600", info.Mode().Perm())
 	}
 }

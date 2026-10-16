@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -50,7 +51,9 @@ func TestChainContinuesAcrossRestarts(t *testing.T) {
 	if err != nil || n != 5 {
 		t.Fatalf("Verify = %d, %v; quería 5 entradas íntegras", n, err)
 	}
-	if info, _ := os.Stat(path); info.Mode().Perm() != 0o600 {
+	// Windows no maneja permisos tipo Unix (siempre reporta rw-rw-rw-), así
+	// que esta comprobación solo aplica en Linux y macOS.
+	if info, _ := os.Stat(path); runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Errorf("permisos = %v; quería 0600", info.Mode().Perm())
 	}
 }
