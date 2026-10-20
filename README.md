@@ -33,4 +33,6 @@ go run ./cmd/server  # http://localhost:8080
 
 - Autenticación: [docs/integracion-auth.md](docs/integracion-auth.md)
 - Vehículos, catálogo y sitio web: [docs/integracion-vehiculos.md](docs/integracion-vehiculos.md)
+- Autorización y administración: [docs/integracion-autorizacion.md](docs/integracion-autorizacion.md)
+- Accounting: [docs/integracion-accounting.md](docs/integracion-accounting.md)
 - Uso de IA: [docs/declaracion-uso-ia.md](docs/declaracion-uso-ia.md)

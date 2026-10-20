@@ -1,4 +1,4 @@
-# Autenticación: guía de integración (Integrante 1)
+# Autenticación: guía de integración
 
 Cubre HU-VEN-01 (registro autónomo) y la parte *Authentication* de RF-01.
 

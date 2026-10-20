@@ -1,4 +1,4 @@
-# Vehículos, catálogo y sitio web: guía de integración (Integrante 2)
+# Vehículos, catálogo y sitio web: guía de integración
 
 Cubre HU-VIS-01 (catálogo público con contacto del vendedor) y HU-VEN-01
 (publicar en estado pendiente y reportar la venta), más las páginas web que
