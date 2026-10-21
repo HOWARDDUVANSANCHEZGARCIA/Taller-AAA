@@ -1,0 +1,49 @@
+sequenceDiagram
+    autonumber
+    actor V as Vendedor
+    actor A as Administrador
+    actor P as Visitante
+    participant G as Gin (middleware)
+    participant S as Servicios
+    participant R as Repositorios
+    participant L as Accounting
+
+    V->>G: POST /auth/login (correo, clave)
+    G->>S: auth.Login
+    S->>R: FindByEmail + PBKDF2
+    S-->>G: token HMAC (sub, exp)
+    G->>L: Record(login, actor = vendedor, 200)
+    G-->>V: 200 token
+
+    V->>G: POST /vehiculos + Bearer token (datos + fotos)
+    G->>S: Authenticate: verifica firma y expiración
+    S->>R: FindByID(sub) → rol del servidor
+    G->>G: RequireRole(vendedor) ✓
+    G->>S: vehicle.Publish(vendedorID, datos, fotos)
+    S->>R: valida JPG/PNG y guarda fotos con nombre aleatorio
+    S->>R: Create(estado = pendiente, imagenes)
+    G->>L: Record(POST /vehiculos, vendedor, 201)
+    G-->>V: 201 pendiente
+
+    V->>G: POST /admin/vehiculos/:id/aprobar + token
+    G->>G: RequireRole(administrador) ✗
+    G->>L: Record(..., vendedor, 403)
+    G-->>V: 403 sin permiso
+
+    P->>G: GET /vehiculos/:id/imagenes/:nombre (sin token)
+    G->>S: ImagePath: pendiente y no es dueño ni admin
+    G->>L: Record(..., anonimo, 404)
+    G-->>P: 404 (la foto aún no es pública)
+
+    A->>G: POST /admin/vehiculos/:id/aprobar + token
+    G->>G: Authenticate ✓ · RequireRole(administrador) ✓
+    G->>S: admin.Approve(id)
+    S->>R: Update bajo bloqueo: pendiente → publicada
+    G->>L: Record(..., administrador, 200)
+    G-->>A: 200 publicada
+
+    P->>G: GET /vehiculos/:id (sin token)
+    G->>S: vehicle.CatalogItem(id)
+    S->>R: vehículo publicado + contacto del vendedor
+    G->>L: Record(..., anonimo, 200)
+    G-->>P: 200 vehículo, URLs de fotos y contacto

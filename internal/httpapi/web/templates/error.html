@@ -1,0 +1,11 @@
+{{define "title"}}Error{{end}}
+{{define "content"}}
+<section class="vacio">
+  {{if eq .Data 404}}<h1>No encontramos lo que buscas</h1>
+  {{else if eq .Data 403}}<h1>Tu cuenta no tiene permiso para esto</h1>
+  {{else if eq .Data 409}}<h1>No se pudo completar</h1>
+  {{else}}<h1>No pudimos completar la solicitud</h1>{{end}}
+  <p>{{.Error}}.</p>
+  <p><a class="boton boton-claro" href="/">Ir al catálogo</a></p>
+</section>
+{{end}}

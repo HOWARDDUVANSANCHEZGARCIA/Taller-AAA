@@ -1,0 +1,45 @@
+flowchart TB
+    cliente(["Navegador o cliente HTTP"])
+
+    subgraph http["internal/httpapi · capa HTTP con Gin"]
+        direction LR
+        m1["1 · Accounting<br/>middleware global"] --> m2["2 · Authenticate<br/>token Bearer o cookie"] --> m3["3 · RequireRole<br/>vendedor / administrador"] --> m4["4 · Handlers<br/>API JSON y páginas HTML"]
+    end
+
+    subgraph servicios["Servicios de dominio"]
+        direction LR
+        auth["internal/auth<br/>registro, login,<br/>PBKDF2, tokens HMAC"]
+        vehicle["internal/vehicle<br/>publicar, vender, fotos,<br/>catálogo, aprobar"]
+        admin["internal/admin<br/>moderación de<br/>publicaciones y usuarios"]
+        accounting["internal/accounting<br/>registro encadenado<br/>con HMAC"]
+    end
+
+    subgraph repos["Repositorios"]
+        direction LR
+        urepo["internal/user<br/>FileRepository"]
+        vrepo["internal/vehicle<br/>FileRepository"]
+        istore["internal/imagestore<br/>valida JPG/PNG,<br/>nombres aleatorios"]
+    end
+
+    subgraph archivos["Archivos en data/"]
+        direction LR
+        f1[("users.json")]
+        f2[("vehicles.json")]
+        f4[("imagenes/&lt;id&gt;/*.jpg|png")]
+        f3[("accounting.log")]
+    end
+
+    cliente -- HTTP --> m1
+    m2 -. identifica .-> auth
+    m4 --> auth & vehicle & admin
+    m1 -. registra .-> accounting
+    admin --> vehicle
+    auth --> urepo
+    vehicle --> urepo
+    vehicle --> vrepo
+    vehicle --> istore
+    admin --> urepo
+    urepo -- "jsonfile:<br/>escritura atómica" --> f1
+    vrepo -- "jsonfile:<br/>escritura atómica" --> f2
+    istore --> f4
+    accounting -- "solo agrega" --> f3

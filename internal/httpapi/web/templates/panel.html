@@ -1,0 +1,86 @@
+{{define "title"}}Panel de administración{{end}}
+{{define "content"}}
+{{$self := .Data.SelfID}}
+<section class="encabezado">
+  <h1>Panel de administración</h1>
+  <p>Revisa las fotos y los datos de cada publicación nueva, apruébala para que salga en el catálogo y elimina las publicaciones o cuentas que no deban estar.</p>
+</section>
+
+<section class="bloque" aria-labelledby="titulo-publicaciones">
+  <h2 id="titulo-publicaciones">Publicaciones</h2>
+  {{if .Data.Publications}}
+  <table class="tabla">
+    <thead>
+      <tr><th scope="col">Vehículo</th><th scope="col">Vendedor</th><th scope="col">Precio</th><th scope="col">Estado</th><th scope="col"><span class="oculto">Acciones</span></th></tr>
+    </thead>
+    <tbody>
+      {{range .Data.Publications}}
+      <tr>
+        <td data-titulo="Vehículo">
+          <strong>{{.Marca}} {{.Modelo}}</strong> {{.Anio}}, {{miles .Kilometraje}} km
+          {{$id := .ID}}
+          {{if .Imagenes}}
+          <div class="tira" aria-label="Fotos para revisar">
+            {{range $i, $img := .Imagenes}}
+            <a href="{{imagen $id $img}}" target="_blank" rel="noopener" title="Abrir foto {{suma $i 1}} en otra pestaña">
+              <img src="{{imagen $id $img}}" alt="Foto {{suma $i 1}}" loading="lazy">
+            </a>
+            {{end}}
+          </div>
+          {{end}}
+        </td>
+        <td data-titulo="Vendedor">{{.Vendedor}}</td>
+        <td data-titulo="Precio">{{pesos .Precio}}</td>
+        <td data-titulo="Estado"><span class="estado estado-{{.Estado}}">{{estado .Estado}}</span></td>
+        <td>
+          <div class="acciones">
+            {{if eq .Estado "pendiente"}}
+            <form method="post" action="/panel/vehiculos/{{.ID}}/aprobar">
+              <button class="boton" type="submit">Aprobar</button>
+            </form>
+            {{end}}
+            <details class="confirmar">
+              <summary class="boton boton-claro">Eliminar</summary>
+              <form method="post" action="/panel/vehiculos/{{.ID}}/eliminar">
+                <button class="boton boton-peligro" type="submit">Sí, eliminar publicación</button>
+              </form>
+            </details>
+          </div>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <div class="vacio"><p>No hay publicaciones todavía.</p></div>
+  {{end}}
+</section>
+
+<section class="bloque" aria-labelledby="titulo-usuarios">
+  <h2 id="titulo-usuarios">Usuarios</h2>
+  <table class="tabla">
+    <thead>
+      <tr><th scope="col">Nombre</th><th scope="col">Correo</th><th scope="col">Rol</th><th scope="col"><span class="oculto">Acciones</span></th></tr>
+    </thead>
+    <tbody>
+      {{range .Data.Users}}
+      <tr>
+        <td data-titulo="Nombre"><strong>{{.Nombre}}</strong></td>
+        <td data-titulo="Correo">{{.Email}}</td>
+        <td data-titulo="Rol">{{if eq .Rol "administrador"}}Administrador{{else}}Vendedor{{end}}</td>
+        <td>
+          {{if ne .ID $self}}
+          <details class="confirmar">
+            <summary class="boton boton-claro">Eliminar</summary>
+            <form method="post" action="/panel/usuarios/{{.ID}}/eliminar">
+              <button class="boton boton-peligro" type="submit">Sí, eliminar cuenta y sus publicaciones</button>
+            </form>
+          </details>
+          {{else}}<span class="nota">Tu cuenta</span>{{end}}
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
